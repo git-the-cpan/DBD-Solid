@@ -1,4 +1,4 @@
-/* $Id: Solid.xs,v 1.4 1997/03/20 01:11:25 tom Exp $	*/
+/* $Id: Solid.xs,v 1.7 1997/07/02 20:23:06 tom Exp $	*/
 /* Copyright (c) 1997  Thomas K. Wenrich				  */
 /* portions Copyright (c) 1994,1995,1996  Tim Bunce			  */
 /*									  */
@@ -59,7 +59,7 @@ disconnect_all(drh)
 
 
 
-# ------------------------------------------------------------
+# -----------------------------------------------------------
 # database level interface
 # ------------------------------------------------------------
 MODULE = DBD::Solid    PACKAGE = DBD::Solid::db
@@ -223,11 +223,15 @@ execute(sth, ...)
     retval = dbd_st_execute(sth);
     if (retval < 0)
 	XST_mUNDEF(0);		/* error        		*/
-    else if (retval == 0)
-	XST_mPV(0, "0E0");	/* true but zero		*/
-    else
-	XST_mIV(0, retval);	/* typically 1 or rowcount	*/
-
+    else 
+	{
+	/* DBI SPEC 0.82: return rows affected  */
+	retval = dbd_st_rows(sth);
+        if (retval == 0)
+	    XST_mPV(0, "0E0");	/* true but zero		*/
+        else
+	    XST_mIV(0, retval);	/* typically 1 or rowcount	*/
+	}
 
 void
 fetch(sth)

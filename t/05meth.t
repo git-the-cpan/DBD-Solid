@@ -19,70 +19,111 @@ exit(1) unless($dbh);
 
 #### testing Tim's early draft DBI methods
 
-my $r1 = $DBI::rows;
-$dbh->{AutoCommit} = 0;
-my $sth;
-$sth = $dbh->prepare("DELETE FROM perl_dbd_test");
-$sth->execute();
-print "not " unless($sth->rows >= 0 
-		    && $DBI::rows == $sth->rows);
-$sth->finish();
-$dbh->rollback();
-print "ok 3\n";
+my $foo = $DBI::errstr;		# suppress possible typo warnings
+   $foo = $DBI::err;
+   $foo = $DBI::state;
+   $foo = $DBI::VERSION;
 
-$sth = $dbh->prepare('SELECT * FROM perl_dbd_test WHERE 1 = 0');
-$sth->execute();
-@row = $sth->fetchrow();
-if ($sth->err)
-    {
-    print ' $sth->err: ', $sth->err, "\n";
-    print ' $sth->errstr: ', $sth->errstr, "\n";
-    print ' $dbh->state: ', $dbh->state, "\n";
-#    print ' $sth->state: ', $sth->state, "\n";
-    }
-$sth->finish();
-print "ok 4\n";
-
-my ($a, $b);
-$sth = $dbh->prepare('SELECT A,B FROM perl_dbd_test');
-$sth->execute();
-while (@row = $sth->fetchrow())
-    {
-    print " \@row     a,b:", $row[0], ",", $row[1], "\n";
-    }
-$sth->finish();
-
-$sth->execute();
-$sth->bind_col(1, \$a);
-$sth->bind_col(2, \$b);
-while ($sth->fetch())
-    {
-    print " bind_col a,b:", $a, ",", $b, "\n";
-    unless (defined($a) && defined($b))
-    	{
-	print "not ";
-	last;
-	}
-    }
-print "ok 5\n";
-$sth->finish();
-
-($a, $b) = (undef, undef);
-$sth->execute();
-$sth->bind_columns(undef, \$b, \$a);
-while ($sth->fetch())
-    {
-    print " bind_columns a,b:", $b, ",", $a, "\n";
-    unless (defined($a) && defined($b))
-    	{
-	print "not ";
-	last;
-	}
-    }
-print "ok 6\n";
-
-$sth->finish();
+my ($t);
+$t = 3;
+$t = test_autocommit_init($dbh, $t);	# 3
+$t = test_rows($dbh, $t);		# 4
+$t = test_err($dbh, $t);		# 5
+$t = test_errstr($dbh, $t);		# 6..8
+$t = test_state($dbh, $t);		# 9
 
 $dbh->disconnect();
 
-BEGIN { $::tests = 6; }
+BEGIN { $::tests = 9; }
+
+sub test_autocommit_init
+    {
+    my ($dbh, $test) = (@_);
+    print " Test $test: initial AutoCommit\n";
+
+    print "not " unless $dbh->{AutoCommit};
+    print "ok $test\n";
+    ++$test;
+    }
+
+sub test_rows
+    {
+    my ($dbh, $test) = (@_);
+    print " Test $test: rows attribute\n";
+
+    $dbh->{AutoCommit} = 0;
+    my $sth;
+    $sth = $dbh->prepare("DELETE FROM perl_dbd_test");
+    $sth->execute();
+    print " $DBI::rows rows deleted\n";
+    print "not " unless($sth->rows > 0 
+		    && $DBI::rows == $sth->rows);
+    $sth->finish();
+    $dbh->rollback();
+    print "ok $test\n";
+    ++$test;
+    }
+
+sub test_err
+    {
+    my ($dbh, $test) = (@_);
+    print " Test $test: err attribute\n";
+
+    my ($sth, @row);
+    $sth = $dbh->prepare('SELECT x FROM perl_dbd_test WHERE 1 = 0');
+
+    print "not " unless ($DBI::err < 0
+			 && $dbh->err < 0);
+    print "ok $test\n";
+    ++$test;
+
+    $test;
+    }
+
+sub test_errstr
+    {
+    my ($dbh, $test) = (@_);
+    print " Test $test: errstr attribute\n";
+
+    my ($sth, @row);
+    $sth = $dbh->prepare('SELECT * FROM perl_dbd_test WHERE 1 = ?');
+    $sth->execute('foobar');
+
+    print " err=", $sth->err, " errstr=", $sth->errstr, "\n";
+
+    print "not " unless ($sth->errstr =~ /Error in assignment/);
+    print "ok $test\n";
+    ++$test;
+
+    $sth->execute('foobar');
+    print "not " unless ($dbh->errstr =~ /Error in assignment/);
+    print "ok $test\n";
+    ++$test;
+
+    $sth->execute('foobar');
+    print "not " unless ($DBI::errstr =~ /Error in assignment/);
+    print "ok $test\n";
+    ++$test;
+
+    $sth->finish();
+    $test;
+    }
+sub test_state
+    {
+    my ($dbh, $test) = (@_);
+    print " Test $test: state attribute\n";
+
+    my ($sth, @row);
+    $sth = $dbh->prepare('SELECT * FROM perl_dbd_test WHERE 1 = ?');
+    $sth->execute('foobar');
+
+    print " err=", $sth->err, " state=", $dbh->state,"\n";
+    
+    print "not " if ($dbh->state != 22005
+    		     || $DBI::state != 22005
+		     || ($DBI::VERSION gt '0.82' && $sth->state != 22005));
+    $sth->finish();
+    print "ok $test\n";
+    ++$test;
+    }
+__END__

@@ -1,33 +1,69 @@
 Hi everybody,
 
-DBD::Solid is a driver module to access the SOLID RDBMS using 
-Tim Bunce's DBI interface. 
+DBD::Solid is a driver module to access the SOLID RDBMS from 
+the perl language using the DBI interface.
+
+Tim Bunce's DBI module is *the* standard way to access a number of 
+different databases from perl.
 
 SOLID is one of the few SQL/ODBC databases engines available for 
 Linux and for other UNIX and non-UNIX platforms.
 
-Changes in this release are:
-	* truncate of LONG fields is now working
-	* some minor bugs are fixed
-	* error handling complies to the DBI draft specification
-	  ($h->err, $h->errstr and $h->state should be full functional)
-	* Makefile.PL is now a bit more intelligent
-	* Tested with Perl5.003_95 and DBI-0.81
+Changes:
+    Bugfixes:
+	* bind_columns works immediate after the describe.
+        * AutoCommit is done by the driver itself [Solid bug ???]
+	* disconnect() rollbacks or commits depending 
+	  on AutoCommit.
+    DBI compliance fixes:
+        * $dbh->{AutoCommit} is ON by default.
+	* $h->{ChopBlanks} was implemented.
+	* $sth->execute() returns the row count (the same value
+	  as $h->rows(), so returns -1 after executing a SELECT).
+	* $sth->rows() counts the rows actually fetched from the
+	  database.
+    Enhancements:
+	* The write/only attribute $dbh->{solid_characterset} may be
+	  used to activate Solid's character set translation features.
+	* Makefile.PL knows about following operating systems:
+		linux SCO3.2 hpux irix solaris
+	* changed function names so DBD::Oracle and DBD::Solid may
+	  coexist within the same static perl binary
+        * Uses perl's default type of linking (when perl thinks it's
+          ok to link dynamic, DBD::Solid will use dynamic linking, 
+	  too)
+        * Some pod documentation was added, describing DBD::Solid 
+	  specific issues.
+    INCOMPATIBILITIES:
+    	* It's not longer possible to set the size of the buffer 
+	  used to fetch LONG columns using the $sth->{blob_size} syntax.
+	  You may use either the solid_blob_size attribute to prepare()
+	  or the blob_read function.
+        * After fetching all rows, $sth->err becomes zero instead 
+	  of +100 to suppress weird messages from $h->{PrintError} 
+	  at end of each fetch.
+        * Still unsupported DBI attributes:
+	  $dbh->ping
 
-Following DBI features are currently NOT supported:
-	$h->{CompatMode}
-	$h->{InactiveDestroy}
-	$h->{ChopBlanks}
-	$dbh->ping
+Tested using:
+	* Linux 2.0.29+libc5.4.23
+	  perl5.004
+	  Solid 2.2(free Linux version)
 
-I tested this only with i486 Linux. Porting to other UNIX systems should be
-easy, with VMS or NT you are at your own.
+	* SCO 3.2.4
+	  SCO development system
+	  perl5.003
+	  Solid 2.2 development system
+
 
 The source of DBD::Solid is available from
 
 	http://members.ping.at/wenrich/DBD-Solid.html
-     or from CPAN (Authors/TWENRICH/DBD-Solid-0.05.tar.gz)
+     or from CPAN (authors/TWENRICH/DBD-Solid-0.07.tar.gz)
 
+     You will also need:
+	* the most recent DBI driver module
+	* the Solid development system
 
 Information about the SOLID database can be found via
 
@@ -37,7 +73,3 @@ Information about the SOLID database can be found via
 Greetings
 
 Thomas
-
-
-
-

@@ -1,4 +1,4 @@
-/* $Id: dbdimp.c,v 1.6 1997/05/10 06:31:30 tom Exp $
+/* $Id: dbdimp.c,v 1.12 1997/07/14 19:22:48 tom Exp $
  * 
  * Copyright (c) 1997  Thomas K. Wenrich
  * portions Copyright (c) 1994,1995,1996  Tim Bunce
@@ -6,8 +6,22 @@
  * You may distribute under the terms of either the GNU General Public
  * License or the Artistic License, as specified in the Perl README file.
  *
+ * Autocommit note:
+ *   Solid 2.2 AUTOCOMMIT is broken (rollback in disconnect() 
+ *   _MAY_ undo inserts done from within a solid procedure), so we 
+ *   handle AutoCommit *additional* to the ODBC connection
+ *   attribute (this is controlled by SOL22_AUTOCOMMIT_BUG definition
+ *   within Makefile.PL).
  */
+
 #include "Solid.h"
+
+
+#define DESCRIBE_IN_PREPARE 1 
+	/* Fixes problem with bind_columns immediate after prepare,
+	 * but breaks $sth->{blob_size} attribute.
+ 	 */
+
 
 typedef struct {
     const char *str;
@@ -46,7 +60,9 @@ dbd_db_destroy(dbh)
     D_imp_dbh(dbh);
 
     if (DBIc_ACTIVE(imp_dbh))
+	{
 	dbd_db_disconnect(dbh);
+	}
     /* Nothing in imp_dbh to be freed	*/
 
     DBIc_IMPSET_off(imp_dbh);
@@ -120,6 +136,16 @@ dbd_db_login(dbh, dbname, uid, pwd)
 	return 0;
 	}
 
+    /* DBI spec requires AutoCommit on
+     */
+    rc = SQLSetConnectOption(imp_dbh->hdbc, 
+    			     SQL_AUTOCOMMIT, 
+			     SQL_AUTOCOMMIT_ON);
+    solid_error(dbh, rc, "dbd_db_login/SQLSetConnectOption");
+    if (rc == SQL_SUCCESS || rc == SQL_SUCCESS_WITH_INFO)
+    	{
+	DBIc_on(imp_dbh, DBIcf_AutoCommit);
+	}
     imp_drh->connects++;
     DBIc_IMPSET_on(imp_dbh);	/* imp_dbh set up now			*/
     DBIc_ACTIVE_on(imp_dbh);	/* call disconnect before freeing	*/
@@ -138,6 +164,21 @@ dbd_db_disconnect(dbh)
     /* since most errors imply already disconnected.	*/
     DBIc_ACTIVE_off(imp_dbh);
 
+    /* DBI spec: rolling back or committing depends
+     * on AutoCommit attribute
+     */
+#ifdef SOL22_AUTOCOMMIT_BUG
+    rc = SQLTransact(imp_drh->henv, 
+		     imp_dbh->hdbc,
+		     DBIc_is(imp_dbh, DBIcf_AutoCommit) 
+		     	? SQL_COMMIT : SQL_ROLLBACK);
+    solid_error(dbh, rc, "db_disconnect/SQLTransact");
+#else
+    rc = SQLTransact(imp_drh->henv, 
+		     imp_dbh->hdbc,
+		     SQL_ROLLBACK);
+    solid_error(dbh, rc, "db_disconnect/SQLTransact");
+#endif
     rc = SQLDisconnect(imp_dbh->hdbc);
     solid_error(dbh, rc, "db_disconnect/SQLDisconnect");
     if (rc != SQL_SUCCESS)
@@ -310,6 +351,15 @@ solid_error(h, badrc, what)
 	sprintf(ErrorMsg, " rc=%d", badrc);
 	sv_catpv(errstr, ErrorMsg);
 	sv_catpv(errstr, ")");
+	}
+    if (badrc == SQL_NO_DATA_FOUND)
+    	{
+	/* For SQLFetch(): 
+	 *      Must clear ODBC error queue, but may not set 
+	 * 	$h->err to suppress weird messages when PrintError 
+	 *	is active.
+	 */
+        sv_setiv(DBIc_ERR(imp_xxh), (IV)0);
 	}
     if (badrc != SQL_SUCCESS)
 	{
@@ -509,7 +559,13 @@ dbd_st_prepare(sth, statement, attribs)
 	{
 	if ((svp=hv_fetch((HV*)SvRV(attribs), "blob_size",9, 0)) != NULL)
 	    {
-	    STRLEN nl;
+	    int len = SvIV(*svp);
+	    imp_sth->long_buflen = len;
+	    if (DBIc_WARN(imp_sth))
+	    	warn("depreciated feature: blob_size will be replaced by solid_blob_size\n");
+	    }
+	if ((svp=hv_fetch((HV*)SvRV(attribs), "solid_blob_size",15, 0)) != NULL)
+	    {
 	    int len = SvIV(*svp);
 	    imp_sth->long_buflen = len;
 	    }
@@ -524,6 +580,12 @@ dbd_st_prepare(sth, statement, attribs)
 	    }
 #endif
 	}
+
+#if DESCRIBE_IN_PREPARE
+    if (dbd_describe(sth, imp_sth) <= 0)
+	return 0;
+#endif
+
     DBIc_IMPSET_on(imp_sth);
     return 1;
     }
@@ -845,6 +907,7 @@ dbd_st_fetch(sth)
     RETCODE rc;
     int num_fields;
     char cvbuf[512];
+    char *p;
 
     /* Check that execute() was executed sucessfully. This also implies	*/
     /* that dbd_describe() executed sucessfuly so the memory buffers	*/
@@ -874,6 +937,11 @@ dbd_st_fetch(sth)
 	default:
 	    return Nullav;
 	}
+
+    if (imp_sth->RowCount == -1)
+	imp_sth->RowCount = 0;
+
+    imp_sth->RowCount++;
 
     av = DBIS->get_fbav(imp_sth);
     num_fields = AvFILL(av)+1;	/* ??? */
@@ -905,7 +973,26 @@ dbd_st_fetch(sth)
 		    sv_setpv(sv, cvbuf);
 		    break;
 		default:
+		    if (fbh->ColSqlType == SQL_CHAR
+		        && DBIc_is(imp_sth, DBIcf_ChopBlanks)
+		        && fbh->datalen > 0)
+		    	{
+			int len = fbh->datalen;
+			char *p0  = (char *)(fbh->data);
+			char *p   = (char *)(fbh->data) + len;
+
+			while (p-- != p0)
+			    {
+			    if (*p != ' ')
+			    	break;
+			    len--;
+			    }
+		        sv_setpvn(sv, p0, len);
+			break;
+			}
+		    /* no ChopBlank */
 		    sv_setpvn(sv, (char*)fbh->data, fbh->datalen);
+		    break;
 		}
 	    }
 	else 
@@ -922,6 +1009,7 @@ dbd_st_finish(sth)
 {
     D_imp_sth(sth);
     D_imp_dbh_from_sth;
+    D_imp_drh_from_dbh;
     RETCODE rc;
     int ret = 0;
 
@@ -933,8 +1021,17 @@ dbd_st_finish(sth)
 	{
 	rc = SQLFreeStmt(imp_sth->hstmt, SQL_CLOSE);
 	solid_error(sth, rc, "st_finish/SQLFreeStmt(SQL_CLOSE)");
+
 	if (rc == SQL_SUCCESS)
 	    ret = 1;
+#ifdef SOL22_AUTOCOMMIT_BUG
+	if (DBIc_is(imp_dbh, DBIcf_AutoCommit))
+	    {
+    	    rc = SQLTransact(imp_drh->henv, 
+		             imp_dbh->hdbc,
+		             SQL_COMMIT);
+	    }
+#endif
 	}
     DBIc_ACTIVE_off(imp_sth);
 
@@ -1038,11 +1135,11 @@ dbd_bind_ph(sth, ph_namesv, newvalue, attribs, is_inout, maxlen)
 	/* XXX If attribs is EMPTY then reset attribs to default?   */
 	if ( (svp=hv_fetch((HV*)SvRV(attribs), "sol_type",8, 0)) != NULL) 
 	    {
-	    int sol_type = SvIV(*svp);
-	    if (!dbtype_is_string(sol_type))        /* mean but safe
+	    int dbd_type = SvIV(*svp);
+	    if (!dbtype_is_string(dbd_type))        /* mean but safe
 						     */
-		croak("Can't bind %s, sol_type %d not a simple string type",                            phs->name, sol_type);
-	    phs->ftype = sol_type;
+		croak("Can't bind %s, sol_type %d not a simple string type",                            phs->name, dbd_type);
+	    phs->ftype = dbd_type;
             }
 	}
  
@@ -1249,6 +1346,7 @@ dbd_st_blob_read(sth, field, offset, len, destrv, destoffset)
 
 static db_params S_db_storeOptions[] =  {
     { "AutoCommit", SQL_AUTOCOMMIT, SQL_AUTOCOMMIT_ON, SQL_AUTOCOMMIT_OFF },
+    { "solid_characterset", SQL_TRANSLATE_OPTION },
 #if 0 /* not defined by DBI/DBD specification */
     { "TRANSACTION", 
                  SQL_ACCESS_MODE, SQL_MODE_READ_ONLY, SQL_MODE_READ_WRITE },
@@ -1292,9 +1390,12 @@ dbd_db_STORE(dbh, keysv, valuesv)
     int on;
     UDWORD vParam;
     const db_params *pars;
+    int parind;
 
     if ((pars = S_dbOption(S_db_storeOptions, key, kl)) == NULL)
 	return FALSE;
+
+    parind = pars - S_db_storeOptions;
 
     switch(pars->fOption)
 	{
@@ -1305,7 +1406,25 @@ dbd_db_STORE(dbh, keysv, valuesv)
 	case SQL_OPT_TRACEFILE:
 	    vParam = (UDWORD) SvPV(valuesv, plen);
 	    break;
-	default:
+	case SQL_TRANSLATE_OPTION:
+	    key = SvPV(valuesv, kl);
+	    if (kl == 7 && !strncmp(key, "default", kl))
+	    	vParam = SQL_SOLID_XLATOPT_DEFAULT;
+	    else if (kl == 5 && !strncmp(key, "nocnv", kl))
+	    	vParam = SQL_SOLID_XLATOPT_NOCNV;
+	    else if (kl == 4 && !strncmp(key, "ansi", kl))
+	    	vParam = SQL_SOLID_XLATOPT_ANSI;
+	    else if (kl == 5 && !strncmp(key, "pcoem", kl))
+	    	vParam = SQL_SOLID_XLATOPT_PCOEM;
+	    else if (kl == 9 && !strncmp(key, "7bitscand", kl))
+	    	vParam = SQL_SOLID_XLATOPT_7BITSCAND;
+	    else
+	        {
+	    	warn("solid_characterset: invalid value '%.*s'\n", kl, key);
+	        return FALSE;
+		}
+	    break;
+	case SQL_AUTOCOMMIT:
 	    on = SvTRUE(valuesv);
 	    vParam = on ? pars->true : pars->false;
 	    break;
@@ -1316,6 +1435,11 @@ dbd_db_STORE(dbh, keysv, valuesv)
     if (rc != SQL_SUCCESS && rc != SQL_SUCCESS_WITH_INFO)
 	{
 	return FALSE;
+	}
+    if (pars->fOption == SQL_AUTOCOMMIT)
+    	{
+	if (on) DBIc_set(imp_dbh, DBIcf_AutoCommit, 1);
+	else    DBIc_set(imp_dbh, DBIcf_AutoCommit, 0);
 	}
     return TRUE;
     }
@@ -1350,9 +1474,6 @@ dbd_db_FETCH(dbh, keysv)
     const db_params *pars;
     SV *retsv = NULL;
 
-    /* checking pars we need FAST
-     */
-
     if ((pars = S_dbOption(S_db_fetchOptions, key, kl)) == NULL)
 	return Nullsv;
 
@@ -1360,14 +1481,20 @@ dbd_db_FETCH(dbh, keysv)
      * readonly, tracefile etc. isn't working yet. only AutoCommit supported.
      */
 
-    rc = SQLGetConnectOption(imp_dbh->hdbc, pars->fOption, &vParam);
-    solid_error(dbh, rc, "db_FETCH/SQLGetConnectOption");
-    if (rc != SQL_SUCCESS && rc != SQL_SUCCESS_WITH_INFO)
-	{
-	if (dbis->debug >= 1)
-	    fprintf(DBILOGFP,
+    if (pars->fOption == 0xffff)
+    	{
+	}
+    else
+    	{
+        rc = SQLGetConnectOption(imp_dbh->hdbc, pars->fOption, &vParam);
+        solid_error(dbh, rc, "db_FETCH/SQLGetConnectOption");
+        if (rc != SQL_SUCCESS && rc != SQL_SUCCESS_WITH_INFO)
+	    {
+	    if (dbis->debug >= 1)
+	        fprintf(DBILOGFP,
 		    "SQLGetConnectOption returned %d in dbd_db_FETCH\n", rc);
-	return Nullsv;
+	    return Nullsv;
+	    }
 	}
     switch(pars->fOption)
 	{
@@ -1402,12 +1529,17 @@ static T_st_params S_st_fetch_params[] =
     s_A("sol_length"),		/* 8 */
     s_A("CursorName"),		/* 9 */
     s_A("blob_size"),		/* 10 */
+    s_A("__handled_by_dbi__"),	/* 11 */	/* ChopBlanks */
+    s_A("solid_blob_size"),	/* 12 */
+    s_A("solid_type"),		/* 13 */
+    s_A("solid_length"),	/* 14 */
     s_A(""),			/* END */
 };
 
 static T_st_params S_st_store_params[] = 
 {
     s_A("blob_size"),		/* 0 */
+    s_A("solid_blob_size"),	/* 1 */
     s_A(""),			/* END */
 };
 #undef s_A
@@ -1432,6 +1564,7 @@ dbd_st_FETCH(sth, keysv)
     char cursor_name[256];
     SWORD cursor_name_len;
     RETCODE rc;
+    int par_index;
 
     for (par = S_st_fetch_params; 
 	 par->len > 0;
@@ -1453,7 +1586,7 @@ dbd_st_FETCH(sth, keysv)
 
     i = DBIc_NUM_FIELDS(imp_sth);
  
-    switch(par - S_st_fetch_params)
+    switch(par_index = par - S_st_fetch_params)
 	{
 	AV *av;
 
@@ -1509,7 +1642,12 @@ dbd_st_FETCH(sth, keysv)
 		av_store(av, i, newSViv(imp_sth->fbh[i].ColScale));
 		}
 	    break;
-	case 7:			/* sol_type */
+	case 7:			/* dbd_type */
+	    if (DBIc_WARN(imp_sth))
+	    	warn("Depreciated feature 'sol_type'. "
+		     "Please use 'solid_type' instead.");
+	    /* fall through */
+	case 13:		/* solid_type */
 	    av = newAV();
 	    retsv = newRV(sv_2mortal((SV*)av));
 	    while(--i >= 0) 
@@ -1517,7 +1655,12 @@ dbd_st_FETCH(sth, keysv)
 		av_store(av, i, newSViv(imp_sth->fbh[i].ColSqlType));
 		}
 	    break;
-	case 8:			/* sol_length */
+	case 8:			/* dbd_length */
+	    if (DBIc_WARN(imp_sth))
+	    	warn("Depreciated feature 'sol_length'. "
+		     "Please use 'solid_length' instead.");
+	    /* fall through */
+	case 14:		/* solid_length */
 	    av = newAV();
 	    retsv = newRV(sv_2mortal((SV*)av));
 	    while(--i >= 0) 
@@ -1543,7 +1686,12 @@ dbd_st_FETCH(sth, keysv)
 		}
 	    retsv = newSVpv(cursor_name, cursor_name_len);
 	    break;
-	case 10:
+	case 10:		/* blob_size */
+	    if (DBIc_WARN(imp_sth))
+	    	warn("Depreciated feature 'blob_size'. "
+		     "Please use 'solid_blob_size' instead.");
+	    /* fall through */
+	case 12:		/* solid_blob_size */
 	    retsv = newSViv(imp_sth->long_buflen);
 	    break;
 	default:
@@ -1579,25 +1727,18 @@ dbd_st_STORE(sth, keysv, valuesv)
 
     switch(par - S_st_store_params)
 	{
-#if 0   /*------------------  not in DBI spec */
-	case 0:			/* CursorName */
-	    rc = SQLSetCursorName(imp_sth->hstmt, value, vl);
-	    if (rc != SQL_SUCCESS)
-		{
-		if (dbis->debug >= 1)
-		    {
-		    fprintf(DBILOGFP,
-			    "SQLSetCursorName returned %d in dbd_st_STORE\n", 
-			    rc);
-		    }
-		solid_error(sth, rc, "st_STORE/SQLSetCursorName");
-		return FALSE;
-		}
-	    return TRUE;
-#endif
 	case 0:/* blob_size */
+	case 1:/* solid_blob_size */
+#if DESCRIBE_IN_PREPARE
+	    warn("$sth->{blob_size} isn't longer supported.\n"
+	         "You may either use the 'solid_blob_size' "
+		 "attribute to prepare()\nor the blob_read() "
+		 "function.\n");
+	    return FALSE;
+#endif
 	    imp_sth->long_buflen = SvIV(valuesv);
 	    return TRUE;
 	}
     return FALSE;
     }
+

@@ -1,5 +1,5 @@
 /*
- * $Id: Solid.h,v 1.3 1997/02/26 01:33:37 tom Exp $
+ * $Id: Solid.h,v 1.5 1997/07/02 20:23:06 tom Exp $
  * Copyright (c) 1997  Thomas K. Wenrich
  * portions Copyright (c) 1994,1995,1996  Tim Bunce
  *

@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl -sw
 #
-# $Id: Makefile.PL,v 1.4 1997/05/10 06:31:30 tom Exp $
+# $Id: Makefile.PL,v 1.9 1997/07/11 07:30:30 tom Exp $
 # Copyright (c) 1997  Thomas K. Wenrich
 #
 # You may distribute under the terms of either the GNU General Public
@@ -11,6 +11,7 @@ use Config;
 use ExtUtils::MakeMaker 5.16, qw(&WriteMakefile $Verbose);
 use strict;
 use File::Find;			# for searching Solid files
+
 # See lib/ExtUtils/MakeMaker.pm for details of how to influence
 # the contents of the Makefile that is written.
 
@@ -18,9 +19,9 @@ my $solid_user = 'solid';	# SOLID RDBMS owner
 my $solid_home;			# base directory of SOLID software
 				# (determined automagically if undefined)
 
-#
+#-------------------------------------------------------------------------
 # build path to search for SOLID files
-#
+#-------------------------------------------------------------------------
 my @search_dirs;
 my $d;
 if ($solid_home) {
@@ -41,73 +42,117 @@ my %opts =
     'NAME'	=> 'DBD::Solid',
     'VERSION_FROM' => 'Solid.pm', # finds $VERSION
     'LIBS'	=> [''],   # e.g., '-lm' 
-    'DEFINE'	=> '',     # e.g., '-DHAVE_SOMETHING' 
+    'DEFINE'	=> '-DSOL22_AUTOCOMMIT_BUG',     # e.g., '-DHAVE_SOMETHING' 
     'INC'	=> '',     # e.g., '-I/usr/include/other' 
     dist  => { DIST_DEFAULT=> 'clean distcheck disttest ci tardist',
                 PREOP => '$(MAKE) -f Makefile.old distdir' },
     'OBJECT'    => qw( $(O_FILES) ),
-#    'OPTIMIZE'  => '-g -O0',
 );
-$opts{LINKTYPE} = 'static';
+OS_Options(\%opts);		# add o/s compiler specific options
 
+my $static_request = 0;
+my $arg;
+my $i;
+while ($arg = $ARGV[$i++])
+    {
+    if ($arg =~ /LINKTYPE=static/i)
+    	{
+	$static_request = 1;
+	$opts{LINKTYPE} = 'static';
+	}
+    $opts{OPTIMIZE} = '-g -O0'
+    	if ($arg eq '--nooptimize');
+    }
+# $opts{LINKTYPE} = 'static';
 
 print "\nConfiguring DBD::Solid ...\n
 >>>\tRemember to actually *READ* the README file!
    \tEspecially if you have any problems.\n
 ";
 
-my $static_link = defined($opts{'LINKTYPE'}) && $opts{'LINKTYPE'} eq 'static';
-
-print ">>>\tLinking STATIC\n" if ($static_link);
-print ">>>\tLinking DYNAMIC (for TESTING only)\n" unless($static_link);
-
 print ">>>\tSearching files of SOLID development kit\n";
+
+#
+# search static libraries
+# (these MUST be somewhere)
+#
+my $static_link;
+my ($lib, $libnam, $libdir);
+my ($slib, $slibdir, $slibnam) = find_lib(1, @search_dirs);
+
+die($::err_sollib_notfound) 
+    unless defined($slib);
+
+if (!defined($opts{'LINKTYPE'}))
+    {
+    ($lib, $libdir, $libnam) = find_lib(0, @search_dirs);
+    $static_link = 0;
+    unless (defined($lib))
+        {
+	$opts{'LINKTYPE'} = 'static';
+	$static_link = 1;
+	}
+    }
+else
+    {
+    $static_link = ($opts{'LINKTYPE'} eq 'static');
+    }
+
+if ($static_link)
+    {
+    ($lib, $libdir, $libnam) = ($slib, $slibdir, $slibnam);
+    }
+
 print "   \tSOLID library: ";
-find_lib($static_link, @search_dirs);
-die("ERROR: NOT FOUND") 
-     unless defined($::solid_lib[0]);
-print $::solid_lib[0], "\n";
+print $lib, "\n";
+
+my ($inc) = find_inc(@search_dirs);
+die($::err_solinc_notfound) 
+	unless defined($inc);
 
 print "   \tSOLID include: ";
-find_inc(@search_dirs);
-die("ERRROR: NOT FOUND") 
-     unless defined($::solid_inc[0]);
-print $::solid_inc[0], "\n";
+print $inc, "\n";
 
 print "\n";
 
 $opts{INC}  = "-I\$(INSTALLSITEARCH)/auto/DBI"
 		. " -I\$(INSTALLSITEARCH)"
+	### . " -I\$(INSTALLSITEARCH)/DBI"  # OOOOLD DBI
 		. " -I\$(INSTALLARCHLIB)";
-$opts{INC} .= " -I$::solid_inc[0]";
 $opts{macro} = {
-	SOLID_LIBRARY => $::solid_lib[0],
-	SOLID_INCLUDE => $::solid_inc[0],
+	SOLID_LIBRARY => $lib,
+	SOLID_INCLUDE => $inc,
+	COMPRESS => 'gzip',
+	SUFFIX => '.gz',
 	};
+$opts{INC} .= " -I$inc";
 
-if ($static_link)
+if ($libnam =~ /^lib/)
     {
-    $opts{macro}->{EXTRALIB} = '$(SOLID_LIBRARY)';
+    print ">>>\tusing perl's default link style\n";
+
+    $libnam =~ s/^lib//;
+    $libnam =~ s/\.a|\.so$//;
+
+    $libnam = "-L$libdir -l$libnam";
+    push (@{$opts{LIBS}}, $libnam);
     }
 else
     {
-    my $lib = $::solid_lib_nam[0];
-    if ($lib =~ s/^lib//)
-        {
-	$lib =~ s/\.a|\.so$//;
-        $opts{LIBS} = ["-L$::solid_lib_dir[0] -l$lib"];
-	}
-    else
+    if ($static_request)
     	{
-	print STDERR <<"_eot";
-Hey! Seems you didn't look into the README.
-
-Please create a symlink (lib$lib.a => $::solid_lib_nam[0]) 
-for dynamic linking.
-
-_eot
-	exit(1);
+	print ">>>\tlinking STATIC (as requested)\n";
+        }
+    else
+        {
+	print ">>>\tAs there is no link lib$libnam => $libnam, we\n";
+	print "\tassume that either\n";
+	print "\t\t* your system doesn't support dynamic linking\n";
+	print "\t\t* you don't want to link dynamic\n";
+	print "\t\t* you didn't look into the README.\n";
+	print "\tSo we'll use STATIC linking.\n";
 	}
+    $opts{macro}->{EXTRALIB} = '$(SOLID_LIBRARY)';
     }
 
 sub MY::pasthru {
@@ -126,33 +171,63 @@ sub find_lib
     my $link = shift(@_) ? 'static' : 'dynamic';
     my @dirs = @_;
     
-    #------------------------------------------------------------
-    # data for linking; 
-    #------------------------------------------------------------
-    my $linux_stat_names = [qw(scllux22.a 
-			       solcli.a)];
-    my $linux_dyn_names  = [qw(libbcllux22.a
-		 	          bcllux22.so
-			       libscllux22.a
-			          scllux22.a
-			         libsolcli.a
-			            solcli.a)];
+    my $dyn = sub 
+    	{
+	my $aref = shift;
+	my @names;
+	foreach (@{$aref})
+	    {
+	    push @names, 'lib' . $_;
+	    }
+	push (@names, @{$aref});
+	\@names
+	};
 
+    #-------------------------------------------------------------------
+    # data for linking.
+    #
+    # solcli.a is usual the old (pre-2.2) Solid library.
+    # sclxxxNN.a is the library of the current Solid version.
+    #
+    # libsolcli.a and libsclxxxNN.a are symlinks to the original
+    # libraries (MakeMaker seems to require them to be named 'lib...')
+    #
+    #-------------------------------------------------------------------
+    my $linux_stat_names = [qw(scllux22.a
+			       solcli.a)];
+    my $linux_dyn_names  = [qw(libbcllux22.so
+			       libscllux22.a
+		                 libsolcli.a)];
+    my $sco3_stat_names  = [qw(sclscx22.a
+			         solcli.a)];
+    my $solaris_stat_names = [qw(sclssx22.a
+                                   solcli.a)];
+    my $irix_stat_names = [qw(sclirx22.a
+                                solcli.a)];
+    my $hpux_stat_names = [qw(sclh9x22.a
+			      solcli.a)];
     my $names = 
     	{
-	'linux' => { 'static' => $linux_stat_names,
-		     'dynamic' => $linux_dyn_names,
+	'linux' =>{ 	'static'  => $linux_stat_names,
+		     	'dynamic' => $linux_dyn_names,
 		   },
+	'sco' =>   { 	'static'  => $sco3_stat_names,
+			# no dyn linkining on SCO
+		   },
+	'solaris' => { 	'static'  => $solaris_stat_names,
+		   	'dynamic' => &{$dyn}($solaris_stat_names),
+		   },
+	'irix' =>  { 	'static'  => $irix_stat_names,
+		   	'dynamic' => &{$dyn}($irix_stat_names),
+		   },
+	'hpux' =>  {	'static'  => $hpux_stat_names,
+		   	'dynamic' => &{$dyn}($hpux_stat_names),
+		   }
 	};
 
     unless (defined($names->{$Config{osname}}))
 	{
-	print <<_eot;
-Your O/S is currently not supported in Makefile.PL.
-Please add your library names to the find_lib function, try it and
-mail your changes to wenrich\@ping.at.
-_eot
-        die;
+	die($::err_os_unsupported);
 	}
 
     my $wanted = sub 
@@ -160,8 +235,8 @@ _eot
 	if ($_ eq $::wanted_lib && -r $_)
 	    {
 	    push(@::solid_lib, $File::Find::name);
-	    push(@::solid_lib_dir, $File::Find::dir);
 	    push(@::solid_lib_nam, $_);
+	    push(@::solid_lib_dir, $File::Find::dir);
 	    }
     	};
 
@@ -169,12 +244,17 @@ _eot
     @::solid_lib_dir = ();
     @::solid_lib_nam = ();
     
+    unless (defined($names->{$Config{osname}}->{$link}))
+	{
+	return (undef, undef, undef);
+	# die (sprintf($::err_os_link, $link));
+	}
     foreach (@{$names->{$Config{osname}}->{$link}})
 	{
 	$::wanted_lib = $_;
 	find($wanted, @dirs);
-	return if (@::solid_lib);
 	}
+    ($::solid_lib[0], $::solid_lib_dir[0], $::solid_lib_nam[0]);
     }
 
 sub find_inc 
@@ -186,7 +266,67 @@ sub find_inc
             if ($_ eq "cli0core.h" && -f $_ && -r _);
 	};
     find($wanted, @dirs);
+    ($::solid_inc[0]);
     }
+
+#-----------------------------------------------------------------------------
+# operating system specific options
+#-----------------------------------------------------------------------------
+sub OS_Options
+    {
+    my $opts = shift;			# \%opts
+    my $osname = $Config{osname};
+    my $osvers = $Config{osvers};
+
+    if ($osname eq "sco")
+    	{
+        $opts->{DEFINE} .= " -DSS_SCO";
+	# perl5.003+SCO 3.2 needs this ???
+        # $opts{macro}->{EXTRALIBS} = '$(SOLID_LIBRARY)';	
+	# $opts->{LINKTYPE} = 'static';
+	}
+    elsif ($osname eq "solaris")
+    	{
+        push(@{$opts->{LIBS}}, "-lpthread")
+	}
+    }
+
+BEGIN {
+    $::err_solinc_notfound = <<_eot;
+ERROR: 	solid include files not found.
+
+        Use the SOLIDDIR environment variable to point to the 
+	base of the directory tree where the SOLID files live.
+
+	Example:
+	    Assuming the SOLID files are in /foo/bar/include
+	    and /foo/bar/lib, you may configure the DBD::Solid 
+	    module by entering 
+		SOLIDDIR=/foo/bar perl Makefile.PL
+_eot
+
+   $::err_os_unsupported = <<_eot;
+ERROR: 	Your O/S ('$Config{osname}) is currently not supported in Makefile.PL.
+
+	Please add your library names to the find_lib function, try it and
+	mail your changes to wenrich\@ping.at.
+_eot
+
+   $::err_sollib_notfound = <<_eot;
+ERROR: 	solid library wasn't found.
+
+        Use the SOLIDDIR environment variable to point to the 
+	base of the directory tree where the SOLID files live.
+
+	Example:
+	    Assuming the SOLID files are in /foo/bar/include
+	    and /foo/bar/lib, you may configure the DBD::Solid 
+	    module by entering 
+		SOLIDDIR=/foo/bar perl Makefile.PL
+
+_eot
+}
+
 __END__
 
 

@@ -1,6 +1,6 @@
 DBD::Solid -- DBD module interfacing the SOLID database.
 
-   $Id: README,v 1.3 1997/05/21 05:43:09 tom Exp $
+   $Id: README,v 1.5 1997/07/02 20:23:06 tom Exp $
    Copyright (c) 1997  Thomas K. Wenrich
    portions Copyright (c) 1994,1995,1996  Tim Bunce
 
@@ -11,9 +11,9 @@ DBD::Solid -- DBD module interfacing the SOLID database.
 
 *  WARNING: THIS IS MOSTLY ALPHA SOFTWARE. Your mileage may vary.       *
 
-*  Most of the code (and most parts of this README) were stolen from the 
+*  Most of the code (and some parts of this README) were stolen from the 
 *  DBD-Oracle distribution. 
-*  However, any Bugs and errors herein are most likely my fault, not 
+*  However, any bugs and errors herein are most likely my fault, not 
 *  those of Tim Bunce.
 
 *BEFORE* BUILDING, TESTING AND INSTALLING this you will need to:
@@ -35,24 +35,29 @@ DBD::Solid -- DBD module interfacing the SOLID database.
            2. below the home directory of the 'solid' user.
 	   3. below /usr/local.
 
-BUILDING:
+    When you want to use dynamic loading, create a hard or symbolic link
+    within the directory where the solid library lives (E.g. 
+	cd /foo/bar/solid/lib
+    	ln -s solcli.a libsolcli.a
 
+BUILDING:
 	perl Makefile.PL
 	make
 
-This will build a static(!) perl binary. Unfortunately, the SOLID 
-client library isn't compiled using '-fpic', so I suspect some 
-troubles when loading this code dynamically.
+Note that since DBD::Solid-0.07 the Makefile.PL will try to 
+build a dynamic loaded extension (on systems supporting this),
+provided you created the link to the library (as described above).
 
-However, there are already some people running dynamic loaded 
-DBD::Solid. In the case you want to try this (but I *do not* 
-recommend it), you you may
-  a) comment the line "%opts{LINKTYPE}='static'" in Makefile.PL.
-  b) create the symlink "libsolcli.a => solcli.a" (or however the
-     name of your library is) in the directory where the Solid 
-     lib resides.
+Just in case the dynloaded DBD::Solid doesn't behave like expected
+(I still don't feel real good about loading binaries made without -fpic
+dynamically, although there was no error report at all about this issue), 
+you may want to build a static binary (either remove the link you created 
+so Makefile.PL doesn't find a libxxxxxx.a and make, make test as usual
+OR run `perl Makefile.PL LINKTYPE=static' and make, make test).
 
-If you have problems see the 'IF YOU HAVE PROBLEMS' section below.
+If you have problems see the 'IF YOU HAVE PROBLEMS' section below
+and the "OPERATING SYSTEM NOTES" section at the end of this file.
+
 If it builds without error you can then run the tests. For the
 main test to work it must be able to connect to a SOLID database.
 
@@ -70,7 +75,7 @@ TESTING
 
     When you want to use a remote SOLID server or have more than one
     SOLID Server running then you must set the SOLID_DSN environment
-    variable to connect to the database.
+    variable to connect to the database. 
 
     Example (assuming a UNIX machine):
 	prompt> SOLID_USER="perltest perltest"
@@ -90,11 +95,18 @@ TESTING
 
 	make install 		   (if the tests look okay)
 
-    NOTE: Most of the test scripts use a common subroutine (in t/testenv.pm)
-    to obtain information about the database connection. To start the tests
-    _without_ running 'make', you may either imitate the way a 'make test' 
-    calls t/*.t (e.g. ./perl t/02base.t) or modify the scripts so 
-    that testenv() is not longer used or within the scripts.
+    TEST NOTES:
+	1. Most of the test scripts use a common subroutine (in
+	   t/testenv.pm) to obtain information about the database 
+	   connection. To start the tests _without_ running 'make', you 
+	   may either imitate the way a 'make test' calls t/*.t (e.g. 
+	   perl t/02base.t) or modify the scripts so that testenv() 
+	   is not longer used or within the scripts.
+	2. The tests aren't self contained; instead, they rely on the
+	   existance of tables created while running t/02base.t.
+	   Because these test tables are removed by t/99drop.t,
+	   they must be recreated by running t/02base.t before
+	   trying one of the later test scripts.
 
 IF YOU HAVE PROBLEMS:
 
@@ -126,8 +138,8 @@ dbi-users@fugue.com and CC them to me at wenrich@ping.at. But note...
 
 2. Full details of which software you are using:
 
-	* Linux kernel version
-	* libc version (!!) currently installed
+	* Version of the operating system 
+	   (on Linux: Kernel and library versions)
 	* Solid versions (of server and development system)
 	* Perl version (the output of perl -V)
 
@@ -140,6 +152,28 @@ then try to help me help you by following these guidelines carefully.
 
 Regards,
 Thomas.
+
+===============================================================================
+OPERATING SYSTEM NOTES:
+
+Solaris:
+	Some Solaris versions(2.5.1 and 2.4) are reported to have 
+	problems with the Solid v2.2 development system.
+	As a workaround, you may use the 2.1 Solid libraries found
+	on URL ftp://ftp.solidtech.com/pub/demos/2.1/sd21sun.zip.
+
+SCO 3.2 (the COFF based SCO)
+	Dynamic linking isn't possible.
+
+	The Microsoft compiler coming with the SCO Development systems 
+	has some bugs, causing 'internal compiler errors' and core dumps 
+	with some of the complex expressions used by DBD,DBI and perl.
+	Sometimes it helps to disable optimizing (add 'OPTIMIZE' = '-Od' 
+	to the %opts hash in Makefile.PL).
+
+IRIX:
+	With irix 5.3 there seem to be problems connecting to a Solid 
+	server via tcp/ip. irix 6.2 is reported to work fine.
 
 ===============================================================================
 Examples and other info:

@@ -20,7 +20,7 @@ print "ok 2\n";
 $dbh->{'AutoCommit'} = 1;
 $rc = commitTest($dbh);
 print " ", $DBI->errstr, "" if ($rc < 0);
-print "not" unless ($rc == 1);
+print "not " unless ($rc == 1);
 print "ok 3\n";
 
 print "not " unless($dbh->{AutoCommit});

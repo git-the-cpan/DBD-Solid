@@ -4,8 +4,13 @@ Solid::DBD long support
 There are two methods to handle LONG data:
 
 1. You may use the LONG fields like the normal ones, provided you have 
-   enough memory to fetch them and set $sth->{blob_size} to a value
-   allowing the interface to fetch all the binary data.
+   enough memory to fetch them.
+   This can be done by giving an attribute value when preparing
+   the statement:
+   	$sth = $dbh->prepare("select * from foo",
+		             { 'solid_blob_size' => 4096, }
+		             );
+   
 
 2. Additional, starting with v0.04, you may read the data out of 
    a LONG column using the function blob_read(). 

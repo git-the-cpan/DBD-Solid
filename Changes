@@ -1,5 +1,35 @@
 Revision history for Perl extension DBD::Solid.
 
+0.07   Sun Jun 08 20:14:01 MET DST 1997
+    Bugfixes:
+	* bind_columns now works immediate after prepare().
+	* AutoCommit handled by driver,
+	  rollback/commit at disconnect() depends on AutoCommit value.
+	  This works around a Solid database bug.
+          
+    Enhancements:
+	* The write/only attribute $dbh->{solid_characterset} may be
+	  used to activate Solid's character set translation features.
+	* Makefile.PL knows about more operating systems:
+		linux SCO3.2 hpux irix solaris
+	* changed function names so DBD::Oracle and DBD::Solid may
+	  coexist in a static perl binary
+	* $dbh->{AutoCommit} is now ON by default (to comply 
+	  to DBI spec)
+        * links dynamic by default
+        * $sth->execute() returns the row count [the same value
+          like $h->rows(), so returns -1 after executing a select]
+        * $sth->rows() counts the rows actually fetched from the
+          database.
+    INCOMPATIBILITIES:
+	* It's not longer possible to set the size of the buffer 
+	  used to fetch LONG columns using the $sth->{blob_size} syntax.
+	  You may use either the solid_blob_size attribute to prepare()
+	  or the blob_read function.
+	* After fetching all rows, $sth->err becomes zero instead 
+	  of +100 to suppress weird messages from $h->{PrintError} 
+	  at end of each fetch.
+
 0.06   Tue May 31 1997
 	* Bugfix for perl 5.003: testenv.pm now uses Exporter.
 

@@ -1,5 +1,5 @@
 /*
- * $Id: dbdimp.h,v 1.5 1997/03/20 01:11:25 tom Exp $
+ * $Id: dbdimp.h,v 1.8 1997/07/11 07:30:30 tom Exp $
  * Copyright (c) 1997  Thomas K. Wenrich
  * portions Copyright (c) 1994,1995,1996  Tim Bunce
  *
@@ -8,6 +8,35 @@
  *
  */
 typedef struct imp_fbh_st imp_fbh_t;
+
+/*
+ * redefine dbd_xxx functions to sol_xxx
+ */
+#define dbd_db_login     sol_db_login
+#define dbd_db_do        sol_db_do
+#define dbd_db_commit    sol_db_commit
+#define dbd_db_rollback  sol_db_rolback
+#define dbd_db_destroy   sol_db_destroy
+#define dbd_db_STORE     sol_db_store
+#define dbd_db_FETCH     sol_db_FETCH
+#define dbd_db_disconnect sol_db_disconnect
+#define dbd_bind_ph      sol_bind_ph
+
+#define dbd_st_prepare   sol_st_prepare
+#define dbd_st_rows      sol_st_rows
+#define dbd_st_execute   sol_st_execute
+#define dbd_st_fetch     sol_st_fetch
+#define dbd_st_finish    sol_st_finish
+#define dbd_st_destroy   sol_st_destroy
+#define dbd_st_readblob  sol_st_readblob
+#define dbd_st_STORE     sol_st_STORE
+#define dbd_st_FETCH     sol_st_FETCH
+#define dbd_st_blob_read sol_st_blob_read
+
+#define dbd_preparse	  sol_preparse
+#define dbd_describe      sol_describe
+#define dbd_init	  sol_init
+#define _dbd_rebind_ph	  _sol_rebind_ph
 
 /* This holds global data of the driver itself.
  */

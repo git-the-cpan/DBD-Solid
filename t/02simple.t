@@ -10,7 +10,11 @@ print "ok 1\n";
 
 print " Test 2: connecting to the database\n";
 my $dbh = DBI->connect($dsn, $user, $pass, 'Solid');
-exit(0) unless($dbh);
+unless($dbh)
+    {
+    warn($DBI::errstr);
+    exit(0);
+    }
 print "ok 2\n";
 
 

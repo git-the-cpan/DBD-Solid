@@ -57,8 +57,10 @@ $dbh->commit();
 #------------------------
 # is this really there ?
 #------------------------
-$sth = $dbh->prepare("SELECT A, LVB FROM blob_test WHERE A=:1");
-$sth->{blob_size} = 4096;
+$sth = $dbh->prepare(
+	"SELECT A, LVB FROM blob_test WHERE A=:1", 
+	{ 'solid_blob_size' => 4096 });
+### $sth->{blob_size} = 4096;			# unsupported since 0.07
 if ($sth->execute(1) && (@row = $sth->fetchrow()))
     {
     print "not " unless ($row[1] eq $longdata);
@@ -75,7 +77,6 @@ $sth->finish();
 # 
 #
 $sth = $dbh->prepare("SELECT A, LVB FROM blob_test WHERE A=:1");
-$sth->{blob_size} = 80;
 $sth->execute(1);
 $sth->fetchrow();
 my $offset = 0;
@@ -90,8 +91,8 @@ print "not " unless $blob eq $longdata;
 print "ok 6\n";
 $sth->finish();
 
-$sth = $dbh->prepare("SELECT A, LVB FROM blob_test WHERE A=:1");
-$sth->{blob_size} = 64;
+$sth = $dbh->prepare("SELECT A, LVB FROM blob_test WHERE A=:1",
+		     {'solid_blob_size' => 64 });
 $sth->execute(1);
 my ($x, $y);
 $sth->bind_columns(undef, \$x, \$y);
