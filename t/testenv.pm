@@ -4,7 +4,12 @@
 # environment for DBD::Solid tests
 #
 
-use strict;
+package testenv;
+# use strict;
+require Exporter;
+
+@ISA = qw(Exporter);
+@EXPORT = qw(soluser);
 
 sub soluser
     {

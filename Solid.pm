@@ -1,4 +1,4 @@
-# $Id: Solid.pm,v 1.6 1997/05/10 06:31:30 tom Exp $
+# $Id: Solid.pm,v 1.7 1997/05/21 05:43:09 tom Exp $
 # Copyright (c) 1997  Thomas K. Wenrich
 # portions Copyright (c) 1994,1995,1996  Tim Bunce
 #
@@ -15,8 +15,8 @@ require 5.003;
 
     @ISA = qw(DynaLoader);
 
-    $VERSION = '0.05';
-    my $Revision = substr(q$Revision: 1.6 $, 10);
+    $VERSION = '0.06';
+    my $Revision = substr(q$Revision: 1.7 $, 10);
 
     require_version DBD::Solid::Const 0.03;
     require_version DBI 0.78;

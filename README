@@ -1,6 +1,6 @@
 DBD::Solid -- DBD module interfacing the SOLID database.
 
-   $Id: README,v 1.2 1997/03/20 01:11:25 tom Exp $
+   $Id: README,v 1.3 1997/05/21 05:43:09 tom Exp $
    Copyright (c) 1997  Thomas K. Wenrich
    portions Copyright (c) 1994,1995,1996  Tim Bunce
 
@@ -90,6 +90,11 @@ TESTING
 
 	make install 		   (if the tests look okay)
 
+    NOTE: Most of the test scripts use a common subroutine (in t/testenv.pm)
+    to obtain information about the database connection. To start the tests
+    _without_ running 'make', you may either imitate the way a 'make test' 
+    calls t/*.t (e.g. ./perl t/02base.t) or modify the scripts so 
+    that testenv() is not longer used or within the scripts.
 
 IF YOU HAVE PROBLEMS:
 

@@ -1,5 +1,8 @@
 Revision history for Perl extension DBD::Solid.
 
+0.06   Tue May 31 1997
+	* Bugfix for perl 5.003: testenv.pm now uses Exporter.
+
 0.05   Sat May 10 03:24:12 MET DST 1997
 	* truncate of LONG fields is now working
 	* some minor bugs, especially tests, are fixed
