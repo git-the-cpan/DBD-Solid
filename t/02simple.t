@@ -1,4 +1,4 @@
-#!/usr/bin/perl -I./t
+#!/usr/bin/perl -I. -I./t
 $| = 1;
 print "1..$tests\n";
 
@@ -6,10 +6,11 @@ require DBI;
 use testenv;
 
 my ($dsn, $user, $pass) = soluser();
+
 print "ok 1\n";
 
 print " Test 2: connecting to the database\n";
-my $dbh = DBI->connect($dsn, $user, $pass, 'Solid');
+my $dbh = DBI->connect($dsn, $user, $pass);
 unless($dbh)
     {
     warn($DBI::errstr);

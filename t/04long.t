@@ -9,7 +9,7 @@ use testenv;
 my ($dsn, $user, $pass) = soluser();
 print "ok 1\n";
 
-my $dbh = DBI->connect($dsn, $user, $pass, 'Solid');
+my $dbh = DBI->connect($dsn, $user, $pass);
 print "not " unless($dbh);
 print "ok 2\n";
 

@@ -10,7 +10,7 @@ my ($dbh, $dsn, $user, $pass);
 
 ($dsn, $user, $pass) = soluser();
 
-$dbh = DBI->connect($dsn, $user, $pass, 'Solid')
+$dbh = DBI->connect($dsn, $user, $pass, {PrintError => 0})
     or exit(0);
 print "ok 1\n";
 

@@ -1,6 +1,25 @@
 Revision history for Perl extension DBD::Solid.
 
-0.10 Feb 09, 1997
+0.11 Feb 24, 1998
+    IMPORTANT fix: 
+    	* rebinding of placeholders and NULL values
+    Minor fixes:
+        * $sth->err gets Solid's native error code. 
+       	  Recent versions used to set $xxx->err to -1 independent 
+	  of the error returned by Solid.
+	* SELECT statements not longer require a finish() between 
+	  execute() of the same sth.
+        * All binary columns (including BINARY and VARBINARY
+	  types) may be used from perl in a transparent fashion.
+        * ping() not raising error even if RaiseError is set.
+        * DBD::Solid::Const not longer used inside Solid.pm 
+	  due to problems with mod_perl/embperl. SQL type values 
+	  are included in recent DBI modules.
+	* tests use now DBI_DSN/DBI_USER/DBI_PASS env vars.
+	* Column names of arbitrary length are possible now (although
+	  there is most likely a Solid limit for this).
+
+0.10 Feb 09, 1998
     * added Win32 ($Config{ostype} == 'MSWin32') to Makefile.PL
     * added freebsd to Makefile.PL (thanks to Tom)
     * fixed ping() method for Solid's unix pipe connections 

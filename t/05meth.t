@@ -12,7 +12,7 @@ my (@row);
 my ($dsn, $user, $pass) = soluser();
 print "ok 1\n";
 
-my $dbh = DBI->connect($dsn, $user, $pass, 'Solid'); 
+my $dbh = DBI->connect($dsn, $user, $pass, {PrintError => 0}); 
 print "not " unless($dbh);
 print "ok 2\n";
 exit(1) unless($dbh);
@@ -50,9 +50,15 @@ sub test_rows
     {
     my ($dbh, $test) = (@_);
     print " Test $test: rows attribute\n";
+    my ($sth, $rows);
+
+    $sth = $dbh->prepare("select count(*) from perl_dbd_test");
+    $sth->execute();
+    ($rows) = $sth->fetchrow;
+    print " rows to delete: $rows\n";
+    $sth->finish();
 
     $dbh->{AutoCommit} = 0;
-    my $sth;
     $sth = $dbh->prepare("DELETE FROM perl_dbd_test");
     $sth->execute();
     print " $DBI::rows rows deleted\n";
@@ -72,8 +78,8 @@ sub test_err
     my ($sth, @row);
     $sth = $dbh->prepare('SELECT x FROM perl_dbd_test WHERE 1 = 0');
 
-    print "not " unless ($DBI::err < 0
-			 && $dbh->err < 0);
+    print "not " unless ($DBI::err == 13
+			 && $dbh->err == $DBI::err);
     print "ok $test\n";
     ++$test;
 

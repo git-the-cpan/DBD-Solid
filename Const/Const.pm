@@ -1,4 +1,4 @@
-# $Id: Const.pm,v 1.5 1998/02/10 01:30:20 tom Exp $
+# $Id: Const.pm,v 1.6 1998/02/24 00:34:39 tom Exp $
 # Copyright (c) 1997  Thomas K. Wenrich
 # portions Copyright (c) 1994,1995,1996  Tim Bunce
 #
@@ -14,12 +14,13 @@ require Exporter;
 require DynaLoader;
 require AutoLoader;
 
-$DBD::Solid::Const::VERSION = '0.03';
+$VERSION = '0.03';
 
 @ISA = qw(Exporter DynaLoader);
 # Items to export into callers namespace by default. Note: do not export
 # names by default without a very good reason. Use EXPORT_OK instead.
 # Do not simply export all your public functions/methods/constants.
+@DBD::Solid::Const::EXPORT = ();
 %DBD::Solid::Const::EXPORT_TAGS = 
     ( 
     sql_types => [ qw(SQL_CHAR
@@ -44,7 +45,7 @@ $DBD::Solid::Const::VERSION = '0.03';
 
 Exporter::export_tags();
 
-@DBD::Solid::Const::EXPORT_OK = qw(
+@EXPORT_OK = qw(
 	CLI0DEFS_H
 	ODBCVER
 	SQL_ACCESSIBLE_PROCEDURES

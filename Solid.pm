@@ -1,4 +1,4 @@
-# $Id: Solid.pm,v 1.13 1998/02/10 01:30:20 tom Exp $
+# $Id: Solid.pm,v 1.14 1998/02/24 00:34:39 tom Exp $
 # Copyright (c) 1997  Thomas K. Wenrich
 # portions Copyright (c) 1994,1995,1996  Tim Bunce
 #
@@ -8,25 +8,30 @@
 require 5.003;
 {
     package DBD::Solid;
+    use strict;
+    use vars qw(@ISA $VERSION);
+    use vars qw($err $errstr $sqlstate $drh);
 
     use DBI ();
     use DynaLoader ();
-    use DBD::Solid::Const qw(:sql_types);
-
     @DBD::Solid::ISA = qw(DynaLoader);
 
-    $DBD::Solid::VERSION = '0.10';
-    my $Revision = substr(q$Revision: 1.13 $, 10);
+    ### clashes with SQL_xxx exported by DBI ??
+    ### use DBD::Solid::Const; ### qw(:sql_types);
+    ### require_version DBD::Solid::Const 0.03;
 
-    require_version DBD::Solid::Const 0.03;
+    $VERSION = '0.11';
+
+    my $Revision = substr(q$Revision: 1.14 $, 10);
+
     require_version DBI 0.86;
 
     bootstrap DBD::Solid $VERSION;
 
     $err = 0;		# holds error code   for DBI::err
-    $DBD::Solid::errstr = "";	# holds error string for DBI::errstr
-    $DBD::Solid::sqlstate = "00000";
-    $DBD::Solid::drh = undef;	# holds driver handle once initialised
+    $errstr = "";		# holds error string for DBI::errstr
+    $sqlstate = "00000";
+    $drh = undef;		# holds driver handle once initialised
 
     sub driver{
 	return $drh if $drh;
@@ -36,9 +41,9 @@ require 5.003;
 
 	# not a 'my' since we use it above to prevent multiple drivers
 
-	$drh = DBI::_new_drh($class, {
+	$DBD::Solid::drh = DBI::_new_drh($class, {
 	    'Name' => 'Solid',
-	    'Version' => $VERSION,
+	    'Version' => $DBD::Solid::VERSION,
 	    'Err'    => \$DBD::Solid::err,
 	    'Errstr' => \$DBD::Solid::errstr,
 	    'State' => \$DBD::Solid::sqlstate,
@@ -55,15 +60,16 @@ require 5.003;
 {   package DBD::Solid::dr; # ====== DRIVER ======
     use strict;
 
-    sub errstr {
-	DBD::Solid::errstr(@_);
-    }
-    sub err {
-	DBD::Solid::err(@_);
-    }
+#    sub errstr {
+#	DBD::Solid::errstr(@_);
+#    }
+#    sub err {
+#	DBD::Solid::err(@_);
+#    }
 
     sub connect {
-	my($drh, $dbname, $user, $auth)= @_;
+	my $drh = shift;
+	my ($dbname, $user, $auth)= @_;
 
 	if ($dbname){	# application is asking for specific database
 	}
@@ -79,6 +85,10 @@ require 5.003;
 	# Call Solid logon func in Solid.xs file
 	# and populate internal handle data.
 
+	$dbname = '' unless(defined($dbname));	# hate strict -w
+	print "1\n" unless defined($dbname);
+	print "2\n" unless defined($user);
+	print "3\n" unless defined($auth);
 	DBD::Solid::db::_login($this, $dbname, $user, $auth)
 	    or return undef;
 
@@ -91,9 +101,9 @@ require 5.003;
 {   package DBD::Solid::db; # ====== DATABASE ======
     use strict;
 
-    sub errstr {
-	DBD::Solid::errstr(@_);
-    }
+#    sub errstr {
+#	DBD::Solid::errstr(@_);
+#    }
 
     sub prepare {
 	my($dbh, $statement, @attribs)= @_;
@@ -135,12 +145,15 @@ require 5.003;
 	my($dbh) = @_;
 	my $old_sigpipe = $SIG{PIPE};
 	$SIG{PIPE} = sub { } ; # in case Solid UPIPE connection is down
-	my $sth = $dbh->prepare("select source from sql_languages");
 	my $rv;
-        if ($sth) {
-	    $rv = $sth->execute();
-	    $sth->finish();
-	}
+	eval {
+	    my $sth = $dbh->prepare("select source from sql_languages");
+	    if ($sth) {
+		$rv = $sth->execute();
+		$sth->finish();
+	    }
+
+	} or $rv = undef;
 	$SIG{PIPE} = $old_sigpipe;
 	return defined $rv;
     }
@@ -271,8 +284,8 @@ for using it.
 	commit the transaction before calling 
 	disconnect
 
-  $rc = $dbh->ping()			supported; executes prepare 
-                                        "select table_name from tables"
+  $rc = $dbh->ping()			supported; prepares and executes
+					from a small system table.
 
   $rc = $dbh->quote()			handled by DBI
   $rc = $sth->execute()			full support

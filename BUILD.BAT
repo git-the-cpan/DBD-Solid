@@ -7,8 +7,12 @@ REM ---- where solid files live
 set SOLIDDIR=d:\solid
 
 REM ---- solid database user and password, used for tests
-set SOLID_USER=test/test
+REM set SOLID_USER=test/test
+set DBI_DSN=DBI:Solid:
+set DBI_USER=test
+set DBI_PASS=test
 
+SETLOCAL
 REM ---- make - should be the same used to build perl
 set MY_MAKE=nmake
 
@@ -50,3 +54,4 @@ goto end
     goto end
 
 :end
+    end_local

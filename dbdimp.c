@@ -1,4 +1,4 @@
-/* $Id: dbdimp.c,v 1.13 1997/07/21 23:13:32 tom Exp $
+/* $Id: dbdimp.c,v 1.14 1998/02/24 00:34:39 tom Exp $
  * 
  * Copyright (c) 1997  Thomas K. Wenrich
  * portions Copyright (c) 1994,1995,1996  Tim Bunce
@@ -43,6 +43,12 @@ S_SqlTypeToString (
 static const char *
 S_SqlCTypeToString (
     SWORD sqltype);
+static int 
+S_IsFetchError(
+	SV *sth, 
+	RETCODE rc, 
+        char *sqlstate,
+	const void *par);
 
 DBISTATE_DECLARE;
 
@@ -84,8 +90,13 @@ dbd_db_login(dbh, dbname, uid, pwd)
     int ret;
 
     RETCODE rc;
-
     static int s_first = 1;
+
+    if (dbis->debug >= 2)
+	fprintf(DBILOGFP, "%s connect '%s', '%s', '%s'\n",
+		s_first ? "FIRST" : "not first", 
+		dbname, uid, pwd);
+
 
     if (s_first)
 	{
@@ -346,8 +357,10 @@ solid_error5(
 		sv_setpvn(DBIc_STATE(imp_xxh), sqlstate, 5);
 		if (dbis->debug >= 3)
 	    	    fprintf(DBILOGFP, 
-		        "solid_error values: sqlstate %0.5s\n",
-				sqlstate);
+		        "solid_error values: sqlstate %0.5s %u\n",
+				sqlstate, NativeError);
+	        if (NativeError != 0)	/* set to real error */
+	            sv_setiv(DBIc_ERR(imp_xxh), (IV)NativeError);
 		}
 	    }
 	while (rc == SQL_SUCCESS || rc == SQL_SUCCESS_WITH_INFO);
@@ -369,7 +382,7 @@ solid_error5(
 	    DBIh_EVENT2(h, ERROR_event, DBIc_ERR(imp_xxh), errstr);
 	    if (dbis->debug >= 2)
 	        fprintf(DBILOGFP, 
-		    "%s error %d recorded: %s\n",
+		    "%s badrc %d recorded: %s\n",
 		    what, badrc, SvPV(errstr,na));
 	    }
         else
@@ -737,15 +750,25 @@ dbd_describe(h, imp_sth)
 	rc = SQLDescribeCol(imp_sth->hstmt, 
 			    i+1, 
 			    ColName,
-			    sizeof(ColName)-1,
+			    sizeof(ColName),	/* max col name length */
 			    &fbh->ColNameLen,
 			    &fbh->ColSqlType,
 			    &fbh->ColDef,
 			    &fbh->ColScale,
 			    &fbh->ColNullable);
+	/* long crash-me columns
+ 	 * get SUCCESS_WITH_INFO due to ColName truncation 
+	 */
         if (rc != SQL_SUCCESS)
-	    break;
-	ColName[fbh->ColNameLen] = 0;
+	    solid_error5(h, rc, "describe pass 1/SQLDescribeCol",
+		     	 S_IsFetchError, &rc);
+        if (rc != SQL_SUCCESS)
+	    return 0;
+
+	if (fbh->ColNameLen >= sizeof(ColName))
+	    ColName[sizeof(ColName)-1] = 0;
+	else
+	    ColName[fbh->ColNameLen] = 0;
 
 
 	t_cbufl  += fbh->ColNameLen;
@@ -753,19 +776,32 @@ dbd_describe(h, imp_sth)
 	rc = SQLColAttributes(imp_sth->hstmt,i+1,SQL_COLUMN_DISPLAY_SIZE,
                                 NULL, 0, NULL ,&fbh->ColDisplaySize);
         if (rc != SQL_SUCCESS)
-	    break;
+	    {
+	    solid_error(h, rc, 
+			"describe pass 1/SQLColAttributes(DISPLAY_SIZE)");
+	    return 0;
+	    }
 	fbh->ColDisplaySize += 1; /* add terminator */
 
 	rc = SQLColAttributes(imp_sth->hstmt,i+1,SQL_COLUMN_LENGTH,
                                 NULL, 0, NULL ,&fbh->ColLength);
         if (rc != SQL_SUCCESS)
-	    break;
+	    {
+	    solid_error(h, rc, 
+			"describe pass 1/SQLColAttributes(COLUMN_LENGTH)");
+	    return 0;
+	    }
 
 	/* change fetched size for some types
 	 */
 	fbh->ftype = SQL_C_CHAR;
 	switch(fbh->ColSqlType)
 	    {
+	    case SQL_BINARY:
+	    case SQL_VARBINARY:
+		fbh->ColDisplaySize = fbh->ColLength;
+		fbh->ftype = SQL_C_BINARY;
+		break;
 	    case SQL_LONGVARBINARY:
 		fbh->ftype = SQL_C_BINARY;
 		fbh->ColDisplaySize = DBIc_LongReadLen(imp_sth);
@@ -826,14 +862,18 @@ dbd_describe(h, imp_sth)
 	rc = SQLDescribeCol(imp_sth->hstmt, 
 			    i+1, 
 			    cbuf_ptr,
-			    255,
+			    fbh->ColNameLen+1,	/* max size from first call */
 			    &fbh->ColNameLen,
 			    &fbh->ColSqlType,
 			    &fbh->ColDef,
 			    &fbh->ColScale,
 			    &fbh->ColNullable);
-	if (rc != SQL_SUCCESS)
-	    break;
+        if (rc != SQL_SUCCESS)
+	    {
+	    solid_error(h, rc, 
+			"describe pass 2/SQLDescribeCol");
+	    return 0;
+	    }
 	
 	fbh->ColName = cbuf_ptr;
 	cbuf_ptr[fbh->ColNameLen] = 0;
@@ -858,10 +898,10 @@ dbd_describe(h, imp_sth)
 		    S_SqlCTypeToString(fbh->ftype),
 		    fbh->ColDisplaySize
 		    );
-	solid_error(h, rc, "describe/SQLBindCol");
 	if (rc != SQL_SUCCESS)
 	    {
-	    break;
+	    solid_error(h, rc, "describe/SQLBindCol");
+	    return 0;
 	    }
 	} /* end pass 2 */
 
@@ -882,6 +922,15 @@ dbd_st_execute(sth)	/* <0 is error, >=0 is ok (row count) */
     RETCODE rc;
     int debug = dbis->debug;
 
+    /* allow multiple execute() without close() 
+     * for one statement
+     */
+    if (DBIc_ACTIVE(imp_sth))
+	{
+	rc = SQLFreeStmt(imp_sth->hstmt, SQL_CLOSE);
+	solid_error(sth, rc, "st_execute/SQLFreeStmt(SQL_CLOSE)");
+	}
+
     if (!imp_sth->done_desc) 
 	{
 	/* describe and allocate storage for results (if any needed)	*/
@@ -898,7 +947,7 @@ dbd_st_execute(sth)	/* <0 is error, >=0 is ok (row count) */
 
     rc = SQLExecute(imp_sth->hstmt);
     solid_error(sth, rc, "st_execute/SQLExecute");
-    if (rc != SQL_SUCCESS && rc != SQL_SUCCESS_WITH_INFO)
+    if (rc != SQL_SUCCESS)
 	{
 	return -1;
 	}
@@ -910,7 +959,11 @@ dbd_st_execute(sth)	/* <0 is error, >=0 is ok (row count) */
 	return -1;
 	}
 
-    DBIc_ACTIVE_on(imp_sth);	/* XXX should only set for select ?	*/
+    if (imp_sth->n_result_cols > 0)	
+    	{
+        /* @@@ assume only SELECT returns columns */
+	DBIc_ACTIVE_on(imp_sth);
+	}
     imp_sth->eod = SQL_SUCCESS;
     return 1;
     }
@@ -934,9 +987,12 @@ S_IsFetchError(
         {
 	if (strEQ(sqlstate, "01004")) /* data truncated */
 	    { 
-	    /* error when LongTruncOk is false */
-
-	    return DBIc_is(imp_sth, DBIcf_LongTruncOk) == 0;
+	    /* without par: error when LongTruncOk is false */
+	    if (par == NULL)
+	        return DBIc_is(imp_sth, DBIcf_LongTruncOk) == 0;
+	    /* with par: is always OK, *par gets SQL_SUCCESS */
+	    *(RETCODE *)par = SQL_SUCCESS;
+	    return 0;
 	    }
 	}
     else if (rc == SQL_NO_DATA_FOUND)
@@ -1076,7 +1132,7 @@ dbd_st_finish(sth)
     D_imp_dbh_from_sth;
     D_imp_drh_from_dbh;
     RETCODE rc;
-    int ret = 0;
+    int ret = 1;
 
     /* Cancel further fetches from this cursor.                 */
     /* We don't close the cursor till DESTROY (dbd_st_destroy). */
@@ -1087,8 +1143,8 @@ dbd_st_finish(sth)
 	rc = SQLFreeStmt(imp_sth->hstmt, SQL_CLOSE);
 	solid_error(sth, rc, "st_finish/SQLFreeStmt(SQL_CLOSE)");
 
-	if (rc == SQL_SUCCESS)
-	    ret = 1;
+	if (rc != SQL_SUCCESS)
+	    ret = 0;
 #ifdef SOL22_AUTOCOMMIT_BUG
 	if (DBIc_is(imp_dbh, DBIcf_AutoCommit))
 	    {
@@ -1100,7 +1156,7 @@ dbd_st_finish(sth)
 	}
     DBIc_ACTIVE_off(imp_sth);
 
-    return 1;
+    return ret;
     }
 
 void
@@ -1234,6 +1290,7 @@ dbd_bind_ph(sth, ph_namesv, newvalue, attribs, is_inout, maxlen)
 	}
     else
 	{
+	phs->isnull = 0;
 	sv_setsv(phs->sv, newvalue);
 	}
     return _dbd_rebind_ph(sth, imp_sth, phs, maxlen);
@@ -1300,6 +1357,8 @@ _dbd_rebind_ph(sth, imp_sth, phs, maxlen)
 	    {
 	    switch(fSqlType)
 		{
+		case SQL_BINARY:
+		case SQL_VARBINARY:
 		case SQL_LONGVARBINARY:
 		    fCType = SQL_C_BINARY;
 		    break;

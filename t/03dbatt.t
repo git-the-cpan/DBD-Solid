@@ -11,7 +11,7 @@ my (@row);
 my ($dsn, $user, $pass) = soluser();
 print "ok 1\n";
 
-my $dbh = DBI->connect($dsn, $user, $pass, 'Solid')
+my $dbh = DBI->connect($dsn, $user, $pass)
     or exit(0);
 print "ok 2\n";
 

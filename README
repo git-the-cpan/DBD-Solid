@@ -1,6 +1,6 @@
 DBD::Solid -- DBD module interfacing the SOLID database.
 
-   $Id: README,v 1.8 1998/02/10 01:30:20 tom Exp $
+   $Id: README,v 1.9 1998/02/24 00:34:39 tom Exp $
    Copyright (c) 1997, 1998  Thomas K. Wenrich
    portions Copyright (c) 1994,1995,1996  Tim Bunce
 
@@ -100,6 +100,16 @@ increases required alignment of target type".
 
 TESTING
 	
+    The tests will work either with the 'new style' environment
+    variables DBI_DSN, DBI_USER, DBI_PASS introduced with DBI 0.86.
+    See the DBI documentation for details.
+
+    'new style' DBI_DSN examples:
+    	DBI_DSN="dbi:Solid:"
+	DBI_DSN="DBI:Solid:sales_db"
+	DBI_DSN="DBI:Solid:my very own giant database"
+	DBI_DSN="DBI:Solid:TCP/IP myhost.mydomain 1313"
+
     The supplied test will connect to the database using the value of the
     SOLID_USER environment variable so you should set that to the correct
     value before starting the test. Don't forget to CREATE the user (see
