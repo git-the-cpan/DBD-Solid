@@ -1,0 +1,45 @@
+
+There are some performance values I checked for the DBD::Solid
+interface.
+
+Please note that this values are *NO* offical SOLID benchmarks; they 
+were produced by running some scripts I used to check the DBD::Solid 
+interface. See bench/* and mytest/* for details.
+
+In real live I build Oracle based access control and time attendance
+systems for a small Austrian company. Using DBD::Oracle, it was easy
+to convert some tables out of a customer's data base to get LOTS of
+real-world data for testing.
+
+Software:
+	DBD::Solid v0.03
+	DBI 0.73
+	Linux 2.0.28
+	Solid server 2.1, test drive, default installation,
+      		no special performance tricks.
+Hardware: 
+	486/100, Linux 2.0.28, 32 MB Ram, SCSI HD
+
+Inserts are done with AutoCommit OFF.
+
+Table PERSONFIX
+
+Insert 7641 rows, 			05:15
+one transaction				~25 rows/second
+					
+Select & fetch random, 1000 rows	00:23 - 00:29
+out of 7641 rows,			~350 queries/sec
+using part of primary key		
+(513 rows found)
+
+Select & fetch all rows			00:41 - 00:48
+					~330 rows/second
+
+Table MESSAGE_LOG
+
+Insert 37732 rows 			21:20
+					~30 rows/second
+
+Select & fetch all 			03:09
+37732 rows 				~200 rows/second
+
