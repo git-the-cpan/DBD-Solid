@@ -1,63 +1,42 @@
-Friends, 
+Everyone, 
 
-I just uploaded DBD::Solid 0.11 to CPAN. 
-
-DBD::Solid is a driver code that enables Perl 5.003 and 5.004
-to access the Solid RDBMS via the DBI module (you will need
-the code for the latest release of DBI and DBD::Solid).
+I've put together a new release of DBD::Solid, a DBD module written by 
+Thomas Wenrich to access the Solid Embedded Engine.
 
 Tim Bunce's DBI module is *the* standard way to access a number of 
-different databases from perl.
+different databases from perl.  FYI, DBD::Solid is a driver code that enables
+ Perl 5.003 and 5.004 to access the Solid RDBMS via the DBI module 
+(you will need the code for the latest release of DBI and DBD::Solid).
 
-SOLID is one of the few SQL/ODBC databases engines available for 
-Linux and for other UNIX and non-UNIX platforms.
+This version contains a patch provided by Brian Slesinsky way back when which
+fixes a problem on Solaris machines using time stamps.  It also has an better
+script for building.
 
-This version fixes some bugs and DBI compliance problems:
-    IMPORTANT fix: 
-    	* rebinding of placeholders and NULL values
-    Minor fixes:
-        * $sth->err gets Solid's native error code. 
-       	  Recent versions used to set $xxx->err to -1 independent 
-	  of the error returned by Solid.
-	* SELECT statements not longer require a finish() between 
-	  execute() of the same sth.
-        * All binary columns (including BINARY and VARBINARY
-	  types) may be used from perl in a transparent fashion.
-        * ping() not raising error even if RaiseError is set.
-        * DBD::Solid::Const not longer used inside Solid.pm 
-	  due to problems with mod_perl/embperl. SQL type values 
-	  are included in recent DBI modules.
-	* tests use now DBI_DSN/DBI_USER/DBI_PASS env vars.
-	* Column names of arbitrary length are possible now (although
-	  there is most likely a Solid limit for this).
+- Joe (slagel@geospiza.com)
 
-Tested using
-	* Linux 2.0.32+libc5.4.33
+
+-----------------------------------------------------------------------------
+Changes:
+     Patch for timestamp bug on Solaris machines
+     Better location of Solid libraries
+
+Tested using:
+	* Red Hat Linux, with kernel 2.0.36
 	  perl5.004_04
-	  Solid 2.2(free Linux version)
+	  Solid 3.0
 
-	* WinNT 4.0 + SP3
-	  Solid Server 2.2 for WinNT
-	  Solid 2.2 development system
-	  MS VC 5.0
-	  perl5.004_04
+The source of DBD::Solid version 0.12 is available from
 
-The source of DBD::Solid is available from
-
-	http://members.ping.at/wenrich/DBD-Solid.html
-     or from CPAN (authors/id/TWENRICH/DBD-Solid-0.11.tar.gz)
+     CPAN (authors/id/SLAGEL/DBD-Solid-0.13a.tar.gz)
 
      You will also need:
         * Perl (of course!), Version 5.003 or better
-	* the most recent DBI driver module (currently V 0.92)
-	* the Solid development system
+	* a recent DBI driver module
+	* the Solid development system (3.0)
 	* a Solid database server
 
 Information about the SOLID database can be found via
 
 	http://www.solid.fi/
      or http://www.solidtech.com/
-
-Regards,
-
-Thomas
+-----------------------------------------------------------------------------

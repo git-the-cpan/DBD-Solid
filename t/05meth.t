@@ -89,25 +89,27 @@ sub test_err
 sub test_errstr
     {
     my ($dbh, $test) = (@_);
+    my $expectedErr = 'Table name PERL_DBD_TEST conflicts with an existing'
+                      . ' entity';
     print " Test $test: errstr attribute\n";
 
     my ($sth, @row);
-    $sth = $dbh->prepare('SELECT * FROM perl_dbd_test WHERE 1 = ?');
-    $sth->execute('foobar');
+    $sth = $dbh->prepare('CREATE TABLE perl_dbd_test( A INTEGER )');
+    $sth->execute();
 
     print " err=", $sth->err, " errstr=", $sth->errstr, "\n";
 
-    print "not " unless ($sth->errstr =~ /Error in assignment/);
+    print "not " unless ($sth->errstr =~ /$expectedErr/);
     print "ok $test\n";
     ++$test;
 
-    $sth->execute('foobar');
-    print "not " unless ($dbh->errstr =~ /Error in assignment/);
+    $sth->execute();
+    print "not " unless ($DBI::errstr =~ /$expectedErr/);
     print "ok $test\n";
     ++$test;
 
-    $sth->execute('foobar');
-    print "not " unless ($DBI::errstr =~ /Error in assignment/);
+    $sth->execute();
+    print "not " unless ($dbh->errstr =~ /$expectedErr/);
     print "ok $test\n";
     ++$test;
 

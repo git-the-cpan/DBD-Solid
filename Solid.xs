@@ -1,4 +1,4 @@
-/* $Id: Solid.xs,v 1.8 1997/11/20 14:17:22 tom Exp $	*/
+/* $Id: Solid.xs,v 1.2 1999/08/04 04:29:25 joe Exp $	*/
 /* Copyright (c) 1997  Thomas K. Wenrich				  */
 /* portions Copyright (c) 1994,1995,1996  Tim Bunce			  */
 /*									  */

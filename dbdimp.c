@@ -1,4 +1,4 @@
-/* $Id: dbdimp.c,v 1.14 1998/02/24 00:34:39 tom Exp $
+/* $Id: dbdimp.c,v 1.3 1999/11/08 21:03:38 joe Exp $
  * 
  * Copyright (c) 1997  Thomas K. Wenrich
  * portions Copyright (c) 1994,1995,1996  Tim Bunce
@@ -666,6 +666,19 @@ S_SqlTypeToString (SWORD sqltype)
 	}
     return "unknown";
     }
+
+static SWORD
+S_ExtendedSqlTypeToSqlType(SWORD sqltype)
+{
+    switch(sqltype)
+	{
+	case SQL_WCHAR:        return SQL_CHAR;
+	case SQL_WVARCHAR:     return SQL_VARCHAR;
+	case SQL_WLONGVARCHAR: return SQL_LONGVARCHAR;
+        }
+    return sqltype;
+}
+
 static const char *
 S_SqlCTypeToString (SWORD sqltype)
 {
@@ -765,6 +778,10 @@ dbd_describe(h, imp_sth)
         if (rc != SQL_SUCCESS)
 	    return 0;
 
+	/* swap Solid extended types for normal sql types
+	 */
+        fbh->ColSqlType = S_ExtendedSqlTypeToSqlType( fbh->ColSqlType );
+
 	if (fbh->ColNameLen >= sizeof(ColName))
 	    ColName[sizeof(ColName)-1] = 0;
 	else
@@ -816,7 +833,8 @@ dbd_describe(h, imp_sth)
 	    }
 	if (fbh->ftype != SQL_C_CHAR)
 	    {
-	    t_dbsize += t_dbsize % sizeof(int);     /* alignment */
+            /* alignment */
+	    t_dbsize += (sizeof(int) - (t_dbsize % sizeof(int))) % sizeof(int);
 	    }
 	t_dbsize += fbh->ColDisplaySize;
 
@@ -849,12 +867,15 @@ dbd_describe(h, imp_sth)
 	i++, fbh++)
 	{
 	int dbtype;
+        int offset;
 
 	switch(fbh->ftype)
 	    {
 	    case SQL_C_BINARY:
 	    case SQL_C_TIMESTAMP:
-		rbuf_ptr += (rbuf_ptr - imp_sth->RowBuffer) % sizeof(int);
+		offset = (rbuf_ptr - imp_sth->RowBuffer);
+                rbuf_ptr += 
+		  (sizeof(int) - (offset % sizeof(int))) % sizeof(int);
 		break;
 	    }
 
@@ -875,6 +896,10 @@ dbd_describe(h, imp_sth)
 	    return 0;
 	    }
 	
+	/* swap Solid extended types for normal sql types
+	 */
+        fbh->ColSqlType = S_ExtendedSqlTypeToSqlType( fbh->ColSqlType );
+
 	fbh->ColName = cbuf_ptr;
 	cbuf_ptr[fbh->ColNameLen] = 0;
 	cbuf_ptr += fbh->ColNameLen+1;

@@ -1,5 +1,5 @@
 /*
- * $Id: Solid.h,v 1.7 1998/02/10 01:30:20 tom Exp $
+ * $Id: Solid.h,v 1.2 1999/08/04 04:29:25 joe Exp $
  * Copyright (c) 1997  Thomas K. Wenrich
  * portions Copyright (c) 1994,1995,1996  Tim Bunce
  *
@@ -10,10 +10,9 @@
 #define NEED_DBIXS_VERSION 7
 
 #include <DBIXS.h>		/* installed by the DBI module	*/
-#include <cli0core.h>
+#include <cli0cli.h>
 #include <cli0defs.h>
 #include <cli0env.h>
-#include <cli0ext1.h>
 
 #include "dbdimp.h"
 

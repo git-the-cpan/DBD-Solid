@@ -1,4 +1,4 @@
-# $Id: Const.pm,v 1.6 1998/02/24 00:34:39 tom Exp $
+# $Id: Const.pm,v 1.2 1999/08/04 04:29:35 joe Exp $
 # Copyright (c) 1997  Thomas K. Wenrich
 # portions Copyright (c) 1994,1995,1996  Tim Bunce
 #

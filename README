@@ -1,6 +1,5 @@
 DBD::Solid -- DBD module interfacing the SOLID database.
 
-   $Id: README,v 1.9 1998/02/24 00:34:39 tom Exp $
    Copyright (c) 1997, 1998  Thomas K. Wenrich
    portions Copyright (c) 1994,1995,1996  Tim Bunce
 
@@ -9,22 +8,23 @@ DBD::Solid -- DBD module interfacing the SOLID database.
 
    PLEASE READ THE ENTIRE README FILE CAREFULLY !
 
-*  WARNING: THIS IS MOSTLY ALPHA SOFTWARE. Your mileage may vary.       *
-
-*  Most of the code (and some parts of this README) were stolen from the 
-*  DBD-Oracle distribution. 
-*  However, any bugs and errors herein are most likely my fault, not 
-*  those of Tim Bunce.
+!!  WARNING: THIS IS MOSTLY ALPHA SOFTWARE. Your mileage may vary.        !!
+!!                                                                        !!
+!!  Most of the code (and some parts of this README) were stolen from the !!
+!!  DBD-Oracle distribution.                                              !!
+!!  However, any bugs and errors herein are most likely my fault, not     !!
+!!  those of Tim Bunce.                                                   !!
 
 IMPORTANT NOTICE:
-    Since July 1997 a working alpha release of the DBD::ODBC
-    module is available. 
-    It's most likely that there will be *NO* further development 
-    on DBD::Solid's C code as soon as DBD::ODBC becomes stable
-    and supports the features DBD::Solid has today.
-    However, it might be possible that there will be a DBD::Solid
-    module adding some Solid specific functions to DBD::ODBC and
-    linking DBD::ODBC against Solid's client library.
+
+  * This version currently will only work with Solid 3.0.  I'm thinking about
+    going back and cleaning it up so that it will work with previous versions
+    of solid, but won't get around to it in the near future.
+
+  * Thomas won't be too involved in any new versions of DBDSolid, but I am 
+    going to try to keep it up to date with the latest version of Solid.  Any
+    questions/problems can be directed to me at slagel@geospiza.com.
+
 
 *BEFORE* BUILDING, TESTING AND INSTALLING this you will need to:
 
@@ -33,10 +33,11 @@ IMPORTANT NOTICE:
 
     Build, test and install the DBI module (at least DBI 0.86).
     It is very important to TEST it and INSTALL it!
+    (Must set DBI_USER and DBI_PASS variables to test)
 
     Remember to *read* the DBI README file!
 
-    Install the SOLID RDBMS software.
+    Install the SOLID 3.0 RDBMS software.
 
     Install the SOLID SQL API files somewhere.
 	Makefile.PL searches those files
@@ -52,13 +53,15 @@ IMPORTANT NOTICE:
     or symbolic link within the directory where the solid library lives 
     E.g. 
 	cd /foo/bar/solid/lib
-    	ln -s solcli.a libsolcli.a
+    	ln -s scll2x30.a libscll2x30.a
+
     On MSWin32, a dynamic lib will be built by default.
 
 BUILDING:
 On UNIX:
 	perl Makefile.PL
 	make
+
 On MSWin32/Visual C/nmake:
 	REM - ensure the Visual C environment is set:
 	CALL "D:\Program Files\DevStudio\vc\bin\vcvars32"
@@ -86,7 +89,7 @@ When you build static, don't forget that all the DBD::Solid code
 lives inside the perl binary created during 'make test'. You will
 need to copy the new perl binary somewhere in /usr/bin or simply 
 do what you are told during 'make': 
-	make -f makefile.aperl install_perl
+	make -f Makefile.aperl install_perl
 
 If you have problems see the 'IF YOU HAVE PROBLEMS' section below
 and the "OPERATING SYSTEM NOTES" section at the end of this file.
@@ -172,7 +175,7 @@ web you can subscribe by sending a message to dbi-request@fugue.com, it
 may take a few days to be processed).
 
 Please post details of any problems (or changes you needed to make) to
-dbi-users@fugue.com and CC them to me at wenrich@ping.at. But note...
+dbi-users@fugue.com and CC them now to slagel@geospiza.com.  But note...
 
 ** IT IS IMPORTANT TO INCLUDE THE FOLLOWING INFORMATION:
 
@@ -197,8 +200,6 @@ the latest". You would do yourself a favour by upgrading beforehand.
 Please remember that I'm _very_ busy. Try to help yourself first,
 then try to help me help you by following these guidelines carefully.
 
-Regards,
-Thomas.
 
 ===============================================================================
 OPERATING SYSTEM NOTES:
@@ -281,5 +282,8 @@ Master archive site for Perl DB information:
 
 Searchable index of the dbi-users mailing list:
 	http://www.coe.missouri.edu/~faq/lists/dbiusers/
+
+Email:
+   slagel@geospiza.com
 
 End.

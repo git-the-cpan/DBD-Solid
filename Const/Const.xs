@@ -8,9 +8,9 @@ extern "C" {
 }
 #endif
 
-#include <cli0core.h>
+#include <cli0cli.h>
 #include <cli0defs.h>
-#include <cli0ext1.h>
+#include <cli0env.h>
 
 static int
 not_here(s)

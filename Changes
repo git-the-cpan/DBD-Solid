@@ -1,4 +1,17 @@
 Revision history for Perl extension DBD::Solid.
+0.13a Nov 9, 1999
+    IMPORTANT fixes:
+	* Added Brian Slesinsky's fix for alignment problem on solaris w/
+          timestamps
+	* Makefile.PL works a little better and detects and warns on Solid
+	  version problems
+    
+0.12 Jul 26, 1999
+    IMPORTANT
+	* New maintainer...me
+
+    Minor fixes:
+        * Now links to Solid 3.0 libaries
 
 0.11 Feb 24, 1998
     IMPORTANT fix: 

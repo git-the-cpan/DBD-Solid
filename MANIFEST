@@ -3,7 +3,6 @@ ANNOUNCE
 BUILD.BAT
 README
 README.longs
-BENCHMARK
 Changes
 Makefile.PL
 Solid.h
@@ -19,8 +18,6 @@ t/05meth.t
 t/06fetch.t
 t/99drop.t
 t/testenv.pm
-mytest/psf.pl
-mytest/msl.pl
 bench/psf.pl
 bench/msl.pl
 Const/Const.pm

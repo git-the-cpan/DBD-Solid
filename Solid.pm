@@ -1,4 +1,4 @@
-# $Id: Solid.pm,v 1.14 1998/02/24 00:34:39 tom Exp $
+# $Id: Solid.pm,v 1.6 1999/11/09 22:11:18 joe Exp $
 # Copyright (c) 1997  Thomas K. Wenrich
 # portions Copyright (c) 1994,1995,1996  Tim Bunce
 #
@@ -20,9 +20,9 @@ require 5.003;
     ### use DBD::Solid::Const; ### qw(:sql_types);
     ### require_version DBD::Solid::Const 0.03;
 
-    $VERSION = '0.11';
+    $VERSION = join '.', (q$Name: DBDSolid-0_13a $ =~ /(\d+)_(\d*[A-Za-z]?)\s+$/);
 
-    my $Revision = substr(q$Revision: 1.14 $, 10);
+    my $Revision = substr(q$Revision: 1.6 $, 10);
 
     require_version DBI 0.86;
 
