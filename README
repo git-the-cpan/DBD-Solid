@@ -1,7 +1,7 @@
 DBD::Solid -- DBD module interfacing the SOLID database.
 
-   $Id: README,v 1.7 1997/11/20 14:17:22 tom Exp $
-   Copyright (c) 1997  Thomas K. Wenrich
+   $Id: README,v 1.8 1998/02/10 01:30:20 tom Exp $
+   Copyright (c) 1997, 1998  Thomas K. Wenrich
    portions Copyright (c) 1994,1995,1996  Tim Bunce
 
    You may distribute under the terms of either the GNU General Public
@@ -42,17 +42,34 @@ IMPORTANT NOTICE:
 	Makefile.PL searches those files
 	   1. below the directory pointed to by the SOLIDDIR environment
 	      variable.
-           2. below the home directory of the 'solid' user.
-	   3. below /usr/local.
+	   On UNIX:
+              2. below the home directory of the 'solid' user.
+	      3. below /usr/local.
+	   On MSWin32 platforms:
+	      2. on drive C:\
 
-    When you want to use dynamic loading, create a hard or symbolic link
-    within the directory where the solid library lives (E.g. 
+    When you want to use dynamic loading on UNIX machines, create a hard 
+    or symbolic link within the directory where the solid library lives 
+    E.g. 
 	cd /foo/bar/solid/lib
     	ln -s solcli.a libsolcli.a
+    On MSWin32, a dynamic lib will be built by default.
 
 BUILDING:
+On UNIX:
 	perl Makefile.PL
 	make
+On MSWin32/Visual C/nmake:
+	REM - ensure the Visual C environment is set:
+	CALL "D:\Program Files\DevStudio\vc\bin\vcvars32"
+	REM - set SOLIDDIR environment (see above)
+	set SOLIDDIR=c:\solid
+	REM - build
+	perl Makefile.PL
+	nmake
+
+	The file BUILD.BAT contains - as example - all necessary
+	definitions to build, test and install the Win32 version.
 
 Note that since DBD::Solid-0.07 the Makefile.PL will try to 
 build a dynamic loaded extension (on systems supporting this),
@@ -64,6 +81,12 @@ dynamically, although there was no error report at all about this issue),
 you may want to build a static binary (either remove the link you created 
 so Makefile.PL doesn't find a libxxxxxx.a and make, make test as usual
 OR run `perl Makefile.PL LINKTYPE=static' and make, make test).
+
+When you build static, don't forget that all the DBD::Solid code
+lives inside the perl binary created during 'make test'. You will
+need to copy the new perl binary somewhere in /usr/bin or simply 
+do what you are told during 'make': 
+	make -f makefile.aperl install_perl
 
 If you have problems see the 'IF YOU HAVE PROBLEMS' section below
 and the "OPERATING SYSTEM NOTES" section at the end of this file.
@@ -87,10 +110,14 @@ TESTING
     SOLID Server running then you must set the SOLID_DSN environment
     variable to connect to the database. 
 
-    Example (assuming a UNIX machine):
+    UNIX (bourne shell) example:
 	prompt> SOLID_USER="perltest perltest"
 	prompt> SOLID_DSN="TCP/IP myhost.mydomain 1313"
 	prompt> export SOLID_USER SOLID_DSN
+
+    MSWin32 example:
+	C:\> set SOLID_USER=perltest/perltest
+	C:\> set SOLID_DSN="TCP/IP myhost.mydomin 1313"
 
     Test your settings by connecting to the database using the solsql
     tool supplied with SOLID:
@@ -130,7 +157,7 @@ know so that I can try to make it automatic in a later release.
 Please don't post problems to comp.lang.perl.misc or perl5-porters.
 This software is supported via the dbi-users mailing list.  For more
 information and to keep informed about progress you can join the a
-mailing list via http://www.fugue.com/dbi (if you are unable to use the
+mailing list via http:www.fugue.com/dbi (if you are unable to use the
 web you can subscribe by sending a message to dbi-request@fugue.com, it
 may take a few days to be processed).
 
@@ -194,7 +221,7 @@ Solaris:
 	Some Solaris versions(2.5.1 and 2.4) are reported to have 
 	problems with the Solid v2.2 development system.
 	As a workaround, you may use the 2.1 Solid libraries found
-	on URL ftp://ftp.solidtech.com/pub/demos/2.1/sd21sun.zip.
+	on URL ftp:ftp.solidtech.com/pub/demos/2.1/sd21sun.zip.
 
 SCO 3.2 (the COFF based SCO)
 	Dynamic linking isn't possible.
@@ -241,8 +268,6 @@ DBI 'home page': http://www.hermetica.com/technologia/DBI
 
 Master archive site for Perl DB information:
     ftp://ftp.demon.co.uk/pub/perl/db/
-
-Mailing list archive:                /DBI/perldb-interest/
 
 Searchable index of the dbi-users mailing list:
 	http://www.coe.missouri.edu/~faq/lists/dbiusers/

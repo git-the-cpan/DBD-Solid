@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl -sw
 #
-# $Id: Makefile.PL,v 1.11 1997/11/20 14:17:22 tom Exp $
+# $Id: Makefile.PL,v 1.12 1998/02/10 01:30:20 tom Exp $
 # Copyright (c) 1997  Thomas K. Wenrich
 #
 # You may distribute under the terms of either the GNU General Public
@@ -31,11 +31,18 @@ if ($solid_home) {
 elsif ($d = $ENV{'SOLIDDIR'}) {
     push(@search_dirs, $d);
     }
-elsif ($d = (getpwnam($solid_user))[7]) {
+else {
+    if ($Config{osname} eq "MSWin32") {
+	push(@search_dirs, 'c:/');
+        }
+    else {
+	if ($d = (getpwnam($solid_user))[7]) {
     push(@search_dirs, $d);
     }
-else {
+        else {
     push(@search_dirs, '/usr/local');
+    }
+	} # unix
     }
 
 my %opts = 
@@ -130,7 +137,13 @@ $opts{macro} = {
 	};
 $opts{INC} .= " -I$inc";
 
-if ($libnam =~ /^lib/)
+if ($Config{osname} eq 'MSWin32')
+    {
+    $opts{dynamic_lib} = { OTHERLDFLAGS => " \$(SOLID_LIBRARY)" };
+    # $opts{dynamic_lib} = { OTHERLDFLAGS => " $lib" };
+    $opts{LIBS} = ["-L\$(SOLID_LIBRARY)"];
+    }
+elsif ($libnam =~ /^lib/)
     {
     print ">>>\tusing perl's default link style\n";
 
@@ -197,6 +210,9 @@ sub find_lib
     # libraries (MakeMaker seems to require them to be named 'lib...')
     #
     #-------------------------------------------------------------------
+    my $freebsd_stat_names = [qw(bclfbx22.a)];
+    my $freebsd_dyn_names  = [qw(libbclfbx22.so
+                               libbclfbx22.a)];
     my $linux_stat_names = [qw(scllux22.a
 			       solcli.a)];
     my $linux_dyn_names  = [qw(libbcllux22.so
@@ -210,8 +226,14 @@ sub find_lib
                                 solcli.a)];
     my $hpux_stat_names = [qw(sclh9x22.a
 			      solcli.a)];
+    my $win32_stat_names = [qw(SCLW3222.LIB)];
+    my $win32_dyn_names = [qw(SCLW3222.LIB)];
+
     my $names = 
     	{
+	'freebsd' =>{ 	'static'  => $freebsd_stat_names,
+		     	'dynamic' => $freebsd_dyn_names,
+		   },
 	'linux' =>{ 	'static'  => $linux_stat_names,
 		     	'dynamic' => $linux_dyn_names,
 		   },
@@ -226,7 +248,10 @@ sub find_lib
 		   },
 	'hpux' =>  {	'static'  => $hpux_stat_names,
 		   	'dynamic' => &{$dyn}($hpux_stat_names),
-		   }
+		   },
+	'MSWin32' => {	static => $win32_stat_names,
+			dynamic => $win32_dyn_names
+		     },
 	};
 
     unless (defined($names->{$Config{osname}}))
@@ -236,7 +261,15 @@ sub find_lib
 
     my $wanted = sub 
 	{
-	if ($_ eq $::wanted_lib && -r $_)
+	my $wl = $::wanted_lib;
+	my $current = $_;
+	
+	if ($Config{osname} eq 'MSWin32') {
+	    $wl = uc($wl);
+	    $current = uc($current);
+	    }
+	# print "wanted: $::wanted_lib, $_\n";
+	if ($current eq $wl && -r $_)
 	    {
 	    push(@::solid_lib, $File::Find::name);
 	    push(@::solid_lib_nam, $_);
@@ -266,8 +299,10 @@ sub find_inc
     my @dirs = @_;
     my $wanted = sub 
 	{
+	my $f = 'cli0core.h';
+	$f = uc($f) if ($Config{osname} eq 'MSWin32');
 	push(@::solid_inc, $File::Find::dir) 
-            if ($_ eq "cli0core.h" && -f $_ && -r _);
+            if ($_ eq $f && -f $_ && -r _);
 	};
     find($wanted, @dirs);
     ($::solid_inc[0]);
@@ -296,6 +331,10 @@ sub OS_Options
     elsif ($osname eq "irix")
     	{
         push(@{$opts->{LIBS}}, "-lpthread");
+	}
+    elsif ($osname eq "MSWin32")
+    	{
+        $opts->{DEFINE} .= " -DSS_WINDOWS";
 	}
     }
 

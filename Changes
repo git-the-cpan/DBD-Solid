@@ -1,5 +1,18 @@
 Revision history for Perl extension DBD::Solid.
 
+0.10 Feb 09, 1997
+    * added Win32 ($Config{ostype} == 'MSWin32') to Makefile.PL
+    * added freebsd to Makefile.PL (thanks to Tom)
+    * fixed ping() method for Solid's unix pipe connections 
+    	(thanks to Tom Moertel)
+
+0.09 Nov 20, 1997
+    * added support for InactiveDestroy (as suggested by tim)
+    * added ping() method.
+    * added irix to Makefile.PL (and a note in the README) 
+    * Autocommit relies (again) on the corresponding database
+      function.
+
 0.08
     Bugfixes:
         * fixed memory leak in $sth DESTROY function (thanks, Tim)

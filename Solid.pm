@@ -1,4 +1,4 @@
-# $Id: Solid.pm,v 1.12 1997/11/20 14:17:22 tom Exp $
+# $Id: Solid.pm,v 1.13 1998/02/10 01:30:20 tom Exp $
 # Copyright (c) 1997  Thomas K. Wenrich
 # portions Copyright (c) 1994,1995,1996  Tim Bunce
 #
@@ -13,10 +13,10 @@ require 5.003;
     use DynaLoader ();
     use DBD::Solid::Const qw(:sql_types);
 
-    @ISA = qw(DynaLoader);
+    @DBD::Solid::ISA = qw(DynaLoader);
 
-    $VERSION = '0.09';
-    my $Revision = substr(q$Revision: 1.12 $, 10);
+    $DBD::Solid::VERSION = '0.10';
+    my $Revision = substr(q$Revision: 1.13 $, 10);
 
     require_version DBD::Solid::Const 0.03;
     require_version DBI 0.86;
@@ -24,9 +24,9 @@ require 5.003;
     bootstrap DBD::Solid $VERSION;
 
     $err = 0;		# holds error code   for DBI::err
-    $errstr = "";	# holds error string for DBI::errstr
-    $sqlstate = "00000";
-    $drh = undef;	# holds driver handle once initialised
+    $DBD::Solid::errstr = "";	# holds error string for DBI::errstr
+    $DBD::Solid::sqlstate = "00000";
+    $DBD::Solid::drh = undef;	# holds driver handle once initialised
 
     sub driver{
 	return $drh if $drh;
@@ -133,10 +133,16 @@ require 5.003;
         # assuming a prepare will need a connection to the database
         #
 	my($dbh) = @_;
-	my $sth = $dbh->prepare("select table_name from tables")
-	    or return undef;
-	$sth->finish();
-	1;
+	my $old_sigpipe = $SIG{PIPE};
+	$SIG{PIPE} = sub { } ; # in case Solid UPIPE connection is down
+	my $sth = $dbh->prepare("select source from sql_languages");
+	my $rv;
+        if ($sth) {
+	    $rv = $sth->execute();
+	    $sth->finish();
+	}
+	$SIG{PIPE} = $old_sigpipe;
+	return defined $rv;
     }
 }
 

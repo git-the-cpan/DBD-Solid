@@ -1,5 +1,5 @@
 /*
- * $Id: Solid.h,v 1.6 1997/11/20 14:17:22 tom Exp $
+ * $Id: Solid.h,v 1.7 1998/02/10 01:30:20 tom Exp $
  * Copyright (c) 1997  Thomas K. Wenrich
  * portions Copyright (c) 1994,1995,1996  Tim Bunce
  *
@@ -13,6 +13,7 @@
 #include <cli0core.h>
 #include <cli0defs.h>
 #include <cli0env.h>
+#include <cli0ext1.h>
 
 #include "dbdimp.h"
 

@@ -142,7 +142,7 @@ SELECT 1
     	{
 	$rc = $row[0];
 	}
-    if ($dbh->err !=  0) {
+    if ($dbh->err) {
 	print ' $dbh->err:', $dbh->err, "\n";
 	print ' $dbh->errstr:', $dbh->errstr, "\n";
 	print ' $dbh->state:', $dbh->state, "\n";

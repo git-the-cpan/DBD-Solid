@@ -1,6 +1,6 @@
 Friends, 
 
-I just uploaded DBD::Solid 0.09 to CPAN. 
+I just uploaded DBD::Solid 0.10 to CPAN. 
 
 DBD::Solid is a driver code that enables Perl 5.003 and 5.004
 to access the Solid RDBMS via the DBI module (you will need
@@ -12,32 +12,31 @@ different databases from perl.
 SOLID is one of the few SQL/ODBC databases engines available for 
 Linux and for other UNIX and non-UNIX platforms.
 
-New in this release (compared to 0.08):
-    * added support for InactiveDestroy (as suggested by tim)
-    * added ping() method.
-    * added irix to Makefile.PL (and a note in the README) 
-    * Autocommit relies (again) on the corresponding database
-      function.
+New in this release (compared to 0.09):
+    * added Win32 ($Config{ostype} == 'MSWin32') to Makefile.PL
+    * added freebsd to Makefile.PL (thanks to Tom)
+    * fixed ping() method for Solid's unix pipe connections 
+      (thanks to Tom Moertel)
 
 Tested using
-	* Linux 2.0.29+libc5.4.38
-	  perl5.004
+	* Linux 2.0.32+libc5.4.33
+	  perl5.004_04
 	  Solid 2.2(free Linux version)
 
-	* SCO 3.2.4
-	  SCO development system
-	  perl5.003
+	* WinNT 4.0 + SP3
+	  Solid Server 2.2 for WinNT
 	  Solid 2.2 development system
-
+	  MS VC 5.0
+	  perl5.004_04
 
 The source of DBD::Solid is available from
 
 	http://members.ping.at/wenrich/DBD-Solid.html
-     or from CPAN (authors/id/TWENRICH/DBD-Solid-0.09.tar.gz)
+     or from CPAN (authors/id/TWENRICH/DBD-Solid-0.10.tar.gz)
 
      You will also need:
         * Perl (of course!), Version 5.003 or better
-	* the most recent DBI driver module (currently V 0.90)
+	* the most recent DBI driver module (currently V 0.92)
 	* the Solid development system
 	* a Solid database server
 

@@ -10,6 +10,7 @@ extern "C" {
 
 #include <cli0core.h>
 #include <cli0defs.h>
+#include <cli0ext1.h>
 
 static int
 not_here(s)
@@ -31,12 +32,6 @@ int arg;
     case 'B':
 	break;
     case 'C':
-	if (strEQ(name, "CLI0DEFS_H"))
-#ifdef CLI0DEFS_H
-	    return CLI0DEFS_H;
-#else
-	    goto not_there;
-#endif
 	break;
     case 'D':
 	break;
