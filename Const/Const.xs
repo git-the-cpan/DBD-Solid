@@ -8,9 +8,41 @@ extern "C" {
 }
 #endif
 
+/* start of mms fixes */
+/*
 #include <cli0cli.h>
 #include <cli0defs.h>
 #include <cli0env.h>
+*/
+
+#ifdef WORD
+#undef WORD
+#endif
+/* Micro$loth says in sql.h that windows.h must come first.
+* sqlunix.h is the equivalent of windows.h.  --mms*/
+/* #ifdef SS_UNIX */
+#include <sqlunix.h>
+/*
+#else
+#include <windows.h>
+#endif
+*/
+#include <sql.h>
+#include <sqltypes.h>
+#include <sqlext.h>
+#include <sqlucode.h>
+
+/*
+#if SOLIDODBCAPI
+#include <sqlucode.h>
+#include <wchar.h>
+#else
+#include <sql.h>
+#include <sqlext.h>
+#endif
+*/
+
+/* end of mms fixes */
 
 static int
 not_here(s)
@@ -3885,6 +3917,25 @@ int arg;
 	    return SQL_VARCHAR;
 #else
 	    goto not_there;
+#endif
+/* I added these three types. --mms */
+   if (strEQ(name, "SQL_WCHAR"))
+#ifdef SQL_WCHAR
+      return SQL_WCHAR;
+#else
+      goto not_there;
+#endif
+   if (strEQ(name, "SQL_WVARCHAR"))
+#ifdef SQL_WVARCHAR
+      return SQL_WVARCHAR;
+#else
+      goto not_there;
+#endif
+   if (strEQ(name, "SQL_WLONGVARCHAR"))
+#ifdef SQL_WLONGVARCHAR
+      return SQL_WLONGVARCHAR;
+#else
+      goto not_there;
 #endif
 	break;
     case 'T':

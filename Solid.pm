@@ -1,64 +1,71 @@
-# $Id: Solid.pm,v 1.6 1999/11/09 22:11:18 joe Exp $
+# $Id: Solid.pm,v 1.1 2001/10/13 20:57:16 joe Exp $
 # Copyright (c) 1997  Thomas K. Wenrich
 # portions Copyright (c) 1994,1995,1996  Tim Bunce
 #
 # You may distribute under the terms of either the GNU General Public
 # License or the Artistic License, as specified in the Perl README file.
 #
+
 require 5.003;
-{
-    package DBD::Solid;
-    use strict;
-    use vars qw(@ISA $VERSION);
-    use vars qw($err $errstr $sqlstate $drh);
 
-    use DBI ();
-    use DynaLoader ();
-    @DBD::Solid::ISA = qw(DynaLoader);
+{  
+   package DBD::Solid;
+   use strict;
+   use vars qw(@ISA $VERSION $S_SQL_ST_DATA_TRUNC $S_SQL_ST_ATTR_VIOL);
+   use vars qw($err $errstr $sqlstate $drh);
 
-    ### clashes with SQL_xxx exported by DBI ??
-    ### use DBD::Solid::Const; ### qw(:sql_types);
-    ### require_version DBD::Solid::Const 0.03;
+   use DBI ();
+   use DynaLoader ();
+   @DBD::Solid::ISA = qw(DynaLoader);
 
-    $VERSION = join '.', (q$Name: DBDSolid-0_13a $ =~ /(\d+)_(\d*[A-Za-z]?)\s+$/);
+   ### clashes with SQL_xxx exported by DBI ??
+   ### use DBD::Solid::Const; 
+   ### qw(:sql_types);
+   ### require_version DBD::Solid::Const 0.03;
 
-    my $Revision = substr(q$Revision: 1.6 $, 10);
+   $VERSION = '0.20';
+   $S_SQL_ST_DATA_TRUNC = '01004';
+   $S_SQL_ST_ATTR_VIOL = '07006';
 
-    require_version DBI 0.86;
+   my $Revision = substr(q$Revision: 1.1 $, 10);
 
-    bootstrap DBD::Solid $VERSION;
+   require_version DBI 0.86;
 
-    $err = 0;		# holds error code   for DBI::err
-    $errstr = "";		# holds error string for DBI::errstr
-    $sqlstate = "00000";
-    $drh = undef;		# holds driver handle once initialised
+   bootstrap DBD::Solid $VERSION;
 
-    sub driver{
-	return $drh if $drh;
-	my($class, $attr) = @_;
+   $err = 0;         # holds error code   for DBI::err
+   $errstr = "";     # holds error string for DBI::errstr
+   $sqlstate = "00000";
+   $drh = undef;     # holds driver handle once initialised
 
-	$class .= "::dr";
+   sub driver {
+      return $drh if $drh;
+      my($class, $attr) = @_;
 
-	# not a 'my' since we use it above to prevent multiple drivers
+      $class .= "::dr";
 
-	$DBD::Solid::drh = DBI::_new_drh($class, {
-	    'Name' => 'Solid',
-	    'Version' => $DBD::Solid::VERSION,
-	    'Err'    => \$DBD::Solid::err,
-	    'Errstr' => \$DBD::Solid::errstr,
-	    'State' => \$DBD::Solid::sqlstate,
-	    'Attribution' => 'Solid DBD by Thomas K. Wenrich',
-	    });
+      # not a 'my' since we use it above to prevent multiple drivers
 
-	$drh;
-    }
+      $DBD::Solid::drh = DBI::_new_drh($class, {
+         'Name' => 'Solid',
+         'Version' => $DBD::Solid::VERSION,
+         'Err'    => \$DBD::Solid::err,
+         'Errstr' => \$DBD::Solid::errstr,
+         'State' => \$DBD::Solid::sqlstate,
+         'Attribution' => 'Solid DBD by Thomas K. Wenrich',
+      });
 
-    1;
+      return $drh;
+   }
+
+   return 1;
 }
 
 
-{   package DBD::Solid::dr; # ====== DRIVER ======
-    use strict;
+# ====== DRIVER ======
+{
+   package DBD::Solid::dr; 
+   use strict;
 
 #    sub errstr {
 #	DBD::Solid::errstr(@_);
@@ -67,108 +74,112 @@ require 5.003;
 #	DBD::Solid::err(@_);
 #    }
 
-    sub connect {
-	my $drh = shift;
-	my ($dbname, $user, $auth)= @_;
+   sub connect {
+      my $drh = shift;
+      my ($dbname, $user, $auth)= @_;
 
-	if ($dbname){	# application is asking for specific database
-	}
+      if ($dbname){	# application is asking for specific database
+      }
 
-	# create a 'blank' dbh
+      # create a 'blank' dbh
 
-	my $this = DBI::_new_dbh($drh, {
-	    'Name' => $dbname,
-	    'USER' => $user, 
-	    'CURRENT_USER' => $user,
-	    });
+      my $this = DBI::_new_dbh($drh, {
+         'Name' => $dbname,
+         'USER' => $user, 
+         'CURRENT_USER' => $user,
+      });
 
-	# Call Solid logon func in Solid.xs file
-	# and populate internal handle data.
+      # Call Solid logon func in Solid.xs file
+      # and populate internal handle data.
 
-	$dbname = '' unless(defined($dbname));	# hate strict -w
-	print "1\n" unless defined($dbname);
-	print "2\n" unless defined($user);
-	print "3\n" unless defined($auth);
-	DBD::Solid::db::_login($this, $dbname, $user, $auth)
-	    or return undef;
+      $dbname = '' unless(defined($dbname));	# hate strict -w
+                                             # ^^^^^^^^^^^^^^
+                                             # Me too!!
+      print "1\n" unless defined($dbname);
+      print "2\n" unless defined($user);
+      print "3\n" unless defined($auth);
+      DBD::Solid::db::_login($this, $dbname, $user, $auth)
+         or return undef;
 
-	$this;
-    }
-
+      return $this;
+   }
 }
 
 
-{   package DBD::Solid::db; # ====== DATABASE ======
-    use strict;
+{   
+   package DBD::Solid::db; # ====== DATABASE ======
+   use strict;
 
 #    sub errstr {
 #	DBD::Solid::errstr(@_);
 #    }
 
-    sub prepare {
-	my($dbh, $statement, @attribs)= @_;
+   sub prepare {
+      my($dbh, $statement, @attribs)= @_;
 
-	# create a 'blank' dbh
+      # create a 'blank' dbh
 
-	my $sth = DBI::_new_sth($dbh, {
-	    'Statement' => $statement,
-	    });
+      my $sth = DBI::_new_sth($dbh, {
+         'Statement' => $statement,
+      });
 
-	# Call Solid OCI oparse func in Solid.xs file.
-	# (This will actually also call oopen for you.)
-	# and populate internal handle data.
+      # Call Solid OCI oparse func in Solid.xs file.
+      # (This will actually also call oopen for you.)
+      # and populate internal handle data.
 
-	DBD::Solid::st::_prepare($sth, $statement, @attribs)
-	    or return undef;
+      DBD::Solid::st::_prepare($sth, $statement, @attribs)
+         or return undef;
 
-	$sth;
-    }
+      return $sth;
+   }
 
-    sub tables {
-	my($dbh) = @_;		# XXX add qualification
-	my $sth = $dbh->prepare("select
-		        table_catalog TABLE_CAT,
-			table_schema  TABLE_SCHEMA,
-			table_name,
-			table_type,
-			remarks TABLE_REMARKS
-		  FROM  tables",
-		  {'LongReadLen' => 4096,
-		  });
-	$sth->execute or return undef;
-	$sth;
-    }
+   sub tables {
+      my($dbh) = @_;		# XXX add qualification
+      my $sth = $dbh->prepare("select
+         table_catalog TABLE_CAT,
+         table_schema  TABLE_SCHEMA,
+         table_name,
+         table_type,
+         remarks TABLE_REMARKS
+         FROM  tables",
+         {'LongReadLen' => 4096,
+      });
+      $sth->execute or return undef;
+      return $sth;
+   }
 
-    sub ping {
-        # assuming a prepare will need a connection to the database
-        #
-	my($dbh) = @_;
-	my $old_sigpipe = $SIG{PIPE};
-	$SIG{PIPE} = sub { } ; # in case Solid UPIPE connection is down
-	my $rv;
-	eval {
-	    my $sth = $dbh->prepare("select source from sql_languages");
-	    if ($sth) {
-		$rv = $sth->execute();
-		$sth->finish();
-	    }
+   sub ping {
+      # assuming a prepare will need a connection to the database
+      my($dbh) = @_;
+      my $old_sigpipe = $SIG{PIPE};
+      $SIG{PIPE} = sub { } ; # in case Solid UPIPE connection is down
+      my $rv;
+      eval {
+         my $sth = $dbh->prepare("select source from sql_languages");
+         if ($sth) {
+            $rv = $sth->execute();
+            $sth->finish();
+         }
 
-	} or $rv = undef;
-	$SIG{PIPE} = $old_sigpipe;
-	return defined $rv;
-    }
+      } or $rv = undef;
+      $SIG{PIPE} = $old_sigpipe;
+      return defined $rv;
+   }
 }
 
 
-{   package DBD::Solid::st; # ====== STATEMENT ======
-    use strict;
+{
+   package DBD::Solid::st; # ====== STATEMENT ======
+   use strict;
 
-    sub errstr {
-	DBD::Solid::errstr(@_);
-    }
+   sub errstr {
+      DBD::Solid::errstr(@_);
+   }
 }
-1;
+
+return 1;
 __END__
+
 # Below is the stub of documentation for your module. You better edit it!
 
 =head1 NAME

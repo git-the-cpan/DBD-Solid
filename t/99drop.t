@@ -19,7 +19,8 @@ foreach (qw(perl_dbd_test blob_test perl_chartest))
     {
     unless ($dbh->do("DROP TABLE $_"))
     	{
-        unless ($dbh->state eq "S0002")
+        #unless ($dbh->state eq "S0002")
+        unless( $dbh->state eq '42S02' )
 	    {
 	    print "not ";
 	    warn($dbh->errstr);

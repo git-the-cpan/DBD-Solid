@@ -127,9 +127,14 @@ sub test_state
 
     print " err=", $sth->err, " state=", $dbh->state,"\n";
     
-    print "not " if ($dbh->state != 22005
-    		     || $DBI::state != 22005
-		     || ($DBI::VERSION gt '0.82' && $sth->state != 22005));
+#    print "not " if ($dbh->state != 22005
+#    		     || $DBI::state != 22005
+#		     || ($DBI::VERSION gt '0.82' && $sth->state != 22005));
+    
+    print "not " if ( $dbh->state ne '07006'
+                  || $DBI::state ne '07006'
+                  || ($DBI::VERSION gt '0.82' && $sth->state ne '07006') );
+    
     $sth->finish();
     print "ok $test\n";
     ++$test;

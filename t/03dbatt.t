@@ -53,43 +53,44 @@ if ($sth and $sth->execute())
 print "ok 6\n";
 $sth->finish();
 
-
+# --------------------------------------------
 my %exp_type = 
     (
-     'ID' 	      => SQL_INTEGER,
-     'PROCEDURE_NAME' => SQL_VARCHAR,
-     'PROCEDURE_TEXT' => SQL_LONGVARCHAR,
-     'PROCEDURE_BIN'  => SQL_LONGVARBINARY,
-     'PROCEDURE_SCHEMA' =>SQL_VARCHAR,
-     'CREATIME' =>       SQL_TIMESTAMP,
-     'TYPE'     =>       SQL_INTEGER
+     'ID' 	                  => SQL_INTEGER,
+     'PROCEDURE_NAME'         => SQL_WVARCHAR,
+     'PROCEDURE_TEXT'         => SQL_WLONGVARCHAR,
+     'PROCEDURE_BIN'          => SQL_LONGVARBINARY,
+     'PROCEDURE_SCHEMA'       => SQL_WVARCHAR,
+     'PROCEDURE_CATALOG'      => SQL_WVARCHAR,
+     'CREATIME'               => SQL_TIMESTAMP,
+     'TYPE'                   => SQL_INTEGER,
+     'RS_ANAME_TUPLE_VERSION' => SQL_VARBINARY
     );
+
 if ($sth = $dbh->prepare('SELECT * from SYS_PROCEDURES'))
-    {
-    my @type = @{$sth->{'TYPE'}};
-    my @name = @{$sth->{'NAME'}};
-    my $t;
-    foreach (@name)
-	{
-	unless ($exp_type{$_} eq ($t = shift(@type))) 
-	    {
-	    print "SQL_VARCHAR is ", SQL_VARCHAR, "\n";
-	    print sprintf('returned type "%d" for col "%s", expected "%d"',
-			  $t, $_, $exp_type{$_}), "\n";
-	    print "not "; 
-	    last;
-	    }
-	}
-    }
+   {
+   my @type = @{$sth->{'TYPE'}};
+   my @name = @{$sth->{'NAME'}};
+   my $t;
+   
+  foreach (@name)
+      {     
+      unless ($exp_type{$_} eq ($t = shift(@type))) 
+         {
+         print sprintf('returned type "%d" for col "%s", expected "%d"',
+                       $t, $_, $exp_type{$_}), "\n";
+         print "not "; 
+         last;
+         }
+      }
+   }
 else 
-    {
-    print "not ";
-    }
+   { print "not "; }
+
 print "ok 7\n";
 $sth->finish();
+
 #------------------------------------------------------------
-
-
 print "not " unless ($sth = $dbh->prepare('SELECT * from TABLES'));
 if ($sth)
     {

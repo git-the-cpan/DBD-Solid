@@ -1,4 +1,9 @@
 Revision history for Perl extension DBD::Solid.
+
+0.20a   9 Feb 2001
+   IMPORTANT fixes:
+   * now links against Solid v3.52 libs
+
 0.13a Nov 9, 1999
     IMPORTANT fixes:
 	* Added Brian Slesinsky's fix for alignment problem on solaris w/

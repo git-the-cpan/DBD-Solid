@@ -1,4 +1,4 @@
-# $Id: Const.pm,v 1.2 1999/08/04 04:29:35 joe Exp $
+# $Id: Const.pm,v 1.1 2001/10/13 20:57:16 joe Exp $
 # Copyright (c) 1997  Thomas K. Wenrich
 # portions Copyright (c) 1994,1995,1996  Tim Bunce
 #
@@ -14,13 +14,15 @@ require Exporter;
 require DynaLoader;
 require AutoLoader;
 
-$VERSION = '0.03';
+$VERSION = '0.20';
 
 @ISA = qw(Exporter DynaLoader);
 # Items to export into callers namespace by default. Note: do not export
 # names by default without a very good reason. Use EXPORT_OK instead.
 # Do not simply export all your public functions/methods/constants.
 @DBD::Solid::Const::EXPORT = ();
+
+# I added the three unicode types. --mms
 %DBD::Solid::Const::EXPORT_TAGS = 
     ( 
     sql_types => [ qw(SQL_CHAR
@@ -40,13 +42,17 @@ $VERSION = '0.03';
 		       SQL_LONGVARBINARY
 		       SQL_BIGINT
 		       SQL_TINYINT
-		       SQL_BIT) ], # sql_types
+		       SQL_BIT
+             SQL_WCHAR
+             SQL_WVARCHAR
+             SQL_WLONGVARCHAR) ], # sql_types
     );
 
 Exporter::export_tags();
 
+# Removed this from the following list. --mms
+#	CLI0DEFS_H
 @EXPORT_OK = qw(
-	CLI0DEFS_H
 	ODBCVER
 	SQL_ACCESSIBLE_PROCEDURES
 	SQL_ACCESSIBLE_TABLES
@@ -57,6 +63,7 @@ Exporter::export_tags();
 	SQL_ALL_EXCEPT_LIKE
 	SQL_ALL_TYPES
 	SQL_ALTER_TABLE
+
 	SQL_API_ALL_FUNCTIONS
 	SQL_API_LOADBYORDINAL
 	SQL_API_SQLALLOCCONNECT
@@ -115,6 +122,7 @@ Exporter::export_tags();
 	SQL_API_SQLTABLEPRIVILEGES
 	SQL_API_SQLTABLES
 	SQL_API_SQLTRANSACT
+
 	SQL_ASYNC_ENABLE
 	SQL_ASYNC_ENABLE_DEFAULT
 	SQL_ASYNC_ENABLE_OFF
@@ -692,6 +700,9 @@ Exporter::export_tags();
 	SQL_VARBINARY
 	SQL_VARCHAR
 	SQL_INTEGER
+   SQL_WCHAR
+   SQL_WVARCHAR
+   SQL_WLONGVARCHAR
 );
 
 # Autoload methods go after __END__, and are processed by the autosplit program.

@@ -1,5 +1,5 @@
 #!/usr/local/bin/perl -sw
-# $Id: Makefile.PL,v 1.2 1999/08/04 04:29:35 joe Exp $
+# $Id: Makefile.PL,v 1.1 2001/10/13 20:57:16 joe Exp $
 #
 # Copyright (c) 1997  Thomas K. Wenrich
 # portions Copyright (c) 1994,1995,1996  Tim Bunce

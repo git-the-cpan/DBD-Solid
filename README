@@ -2,81 +2,56 @@ DBD::Solid -- DBD module interfacing the SOLID database.
 
    Copyright (c) 1997, 1998  Thomas K. Wenrich
    portions Copyright (c) 1994,1995,1996  Tim Bunce
+   very small portions Copyright (c) 2000,2001 Joe Slagel & Max Struma
 
    You may distribute under the terms of either the GNU General Public
    License or the Artistic License, as specified in the Perl README file.
 
    PLEASE READ THE ENTIRE README FILE CAREFULLY !
 
-!!  WARNING: THIS IS MOSTLY ALPHA SOFTWARE. Your mileage may vary.        !!
-!!                                                                        !!
-!!  Most of the code (and some parts of this README) were stolen from the !!
-!!  DBD-Oracle distribution.                                              !!
-!!  However, any bugs and errors herein are most likely my fault, not     !!
-!!  those of Tim Bunce.                                                   !!
+*  WARNING: THIS IS MOSTLY ALPHA SOFTWARE. Your mileage may vary.       *
+
+*  Most of the code (and some parts of this README) were stolen from the 
+*  DBD-Oracle distribution. 
+*  However, any bugs and errors herein are most likely my fault, not 
+*  those of Tim Bunce.
 
 IMPORTANT NOTICE:
+This is a new DBD-Solid for Solid 3.5.  To all changes that I've made I've 
+appended my initials (mms) so that all blame may be laid before the appropriate
+feet and so that a search for the string 'mms' will take one directly to the
+modifications I've found necessary to support solid 3.5.  Questions/problems 
+can be directed to slagel@geospiza.com (or possibly to max@geospiza.com).
 
-  * This version currently will only work with Solid 3.0.  I'm thinking about
-    going back and cleaning it up so that it will work with previous versions
-    of solid, but won't get around to it in the near future.
+Also, note that this version of DBD-Solid supports only Solid 3.52.  If you wish
+to modify it for use with 3.51, READ the notes for the function dbd_st_fetch in
+dbdimp.c. 
 
-  * Thomas won't be too involved in any new versions of DBDSolid, but I am 
-    going to try to keep it up to date with the latest version of Solid.  Any
-    questions/problems can be directed to me at slagel@geospiza.com.
+Lastly, support for platforms other than Linux/Solaris has been removed, until 
+we can get some time to put it back in correctly.  Your welcome to try to build
+on other platforms...your mileage may vary.  Please forward on any patches.
 
 
 *BEFORE* BUILDING, TESTING AND INSTALLING this you will need to:
 
-    Build, test and install Perl 5 (at least 5.003).
+    Build, test and install Perl 5 (at least 5.005).
     It is very important to TEST it and INSTALL it!
 
-    Build, test and install the DBI module (at least DBI 0.86).
+    Build, test and install the DBI module.
     It is very important to TEST it and INSTALL it!
-    (Must set DBI_USER and DBI_PASS variables to test)
-
+    
     Remember to *read* the DBI README file!
 
-    Install the SOLID 3.0 RDBMS software.
+    Install the SOLID 3.52 RDBMS software.
 
-    Install the SOLID SQL API files somewhere.
-	Makefile.PL searches those files
-	   1. below the directory pointed to by the SOLIDDIR environment
-	      variable.
-	   On UNIX:
-              2. below the home directory of the 'solid' user.
-	      3. below /usr/local.
-	   On MSWin32 platforms:
-	      2. on drive C:\
-
-    When you want to use dynamic loading on UNIX machines, create a hard 
-    or symbolic link within the directory where the solid library lives 
-    E.g. 
-	cd /foo/bar/solid/lib
-    	ln -s scll2x30.a libscll2x30.a
-
-    On MSWin32, a dynamic lib will be built by default.
+	Makefile.PL searches those files below the directory pointed to by the 
+        SOLIDDIR environment
 
 BUILDING:
 On UNIX:
-	perl Makefile.PL
+
+	SOLIDDIR=myhome/solid; perl Makefile.PL
 	make
-
-On MSWin32/Visual C/nmake:
-	REM - ensure the Visual C environment is set:
-	CALL "D:\Program Files\DevStudio\vc\bin\vcvars32"
-	REM - set SOLIDDIR environment (see above)
-	set SOLIDDIR=c:\solid
-	REM - build
-	perl Makefile.PL
-	nmake
-
-	The file BUILD.BAT contains - as example - all necessary
-	definitions to build, test and install the Win32 version.
-
-Note that since DBD::Solid-0.07 the Makefile.PL will try to 
-build a dynamic loaded extension (on systems supporting this),
-provided you created the link to the library (as described above).
 
 Just in case the dynloaded DBD::Solid doesn't behave like expected
 (I still don't feel real good about loading binaries made without -fpic
@@ -89,7 +64,7 @@ When you build static, don't forget that all the DBD::Solid code
 lives inside the perl binary created during 'make test'. You will
 need to copy the new perl binary somewhere in /usr/bin or simply 
 do what you are told during 'make': 
-	make -f Makefile.aperl install_perl
+	make -f makefile.aperl install_perl
 
 If you have problems see the 'IF YOU HAVE PROBLEMS' section below
 and the "OPERATING SYSTEM NOTES" section at the end of this file.
@@ -101,20 +76,23 @@ Don't worry about most warnings, specifically "end-of-loop code not
 reached", "ANSI C forbids braced-groups within expressions", "cast
 increases required alignment of target type".
 
+Also, don't worry about 'SQL_NO_DATA_FOUND' redefined warnings.  That's
+a clash between DBI and Solid's ODBC, and it doesn't affect anything. --mms
+
 TESTING
 	
-    The tests will work either with the 'new style' environment
-    variables DBI_DSN, DBI_USER, DBI_PASS introduced with DBI 0.86.
+    The tests kinda work with the 'new style' environment variables
+    DBI_DSN, DBI_USER, DBI_PASS introduced with DBI 0.86.
     See the DBI documentation for details.
 
-    'new style' DBI_DSN examples:
-    	DBI_DSN="dbi:Solid:"
-	DBI_DSN="DBI:Solid:sales_db"
-	DBI_DSN="DBI:Solid:my very own giant database"
-	DBI_DSN="DBI:Solid:TCP/IP myhost.mydomain 1313"
+    'new style' examples:
+    setenv SOLID_HOME /usr/local/soliddb
+    setenv SOLID_DSN "tcp localhost 1313"
+    setenv DBI_USER dba
+    setenv DBI_PASS dba
 
     The supplied test will connect to the database using the value of the
-    SOLID_USER environment variable so you should set that to the correct
+    DBI_USER  environment variable so you should set that to the correct
     value before starting the test. Don't forget to CREATE the user (see
     SOLID Server documentation) when you aren't using an existing 
     database user.
@@ -128,14 +106,10 @@ TESTING
 	prompt> SOLID_DSN="TCP/IP myhost.mydomain 1313"
 	prompt> export SOLID_USER SOLID_DSN
 
-    MSWin32 example:
-	C:\> set SOLID_USER=perltest/perltest
-	C:\> set SOLID_DSN="TCP/IP myhost.mydomin 1313"
-
     Test your settings by connecting to the database using the solsql
     tool supplied with SOLID:
 
-	prompt> solsql $SOLID_DSN $SOLID_USER
+	prompt> solsql $SOLID_DSN $DBI_USER $DBI_PASS
 
     This should connect you to the SOLID server. Once you can do
     that then you can test DBD::Solid knowing that it should work.
@@ -197,9 +171,6 @@ It is important to check that you are using the latest version before
 posting. If you're not then I'm *very* likely to simply say "upgrade to
 the latest". You would do yourself a favour by upgrading beforehand.
 
-Please remember that I'm _very_ busy. Try to help yourself first,
-then try to help me help you by following these guidelines carefully.
-
 
 ===============================================================================
 OPERATING SYSTEM NOTES:
@@ -225,65 +196,17 @@ Linker problems:
        This is also a linker problem. You may try to build a
        static perl binary; if this also fails, try (1).
 
-In general, you may try to use another version of the Solid 
-client library.
-
-Solaris:
-	Some Solaris versions(2.5.1 and 2.4) are reported to have 
-	problems with the Solid v2.2 development system.
-	As a workaround, you may use the 2.1 Solid libraries found
-	on URL ftp:ftp.solidtech.com/pub/demos/2.1/sd21sun.zip.
-
-SCO 3.2 (the COFF based SCO)
-	Dynamic linking isn't possible.
-
-	The Microsoft compiler coming with the SCO Development systems 
-	has some bugs, causing 'internal compiler errors' and core dumps 
-	with some of the complex expressions used by DBD,DBI and perl.
-	Sometimes it helps to disable optimizing (add 'OPTIMIZE' = '-Od' 
-	to the %opts hash in Makefile.PL).
-
-IRIX:
-	With irix 5.3 there seem to be problems connecting to a Solid 
-	server via tcp/ip. irix 6.2 is reported to work fine, using
-	the Solid 2.1 client library.
-
-	The perl coming with irix 6.3 (the SGI freeware CD) might not 
-	be compatible to Solid's client libraries (the Solid lib is  
-	built using -w32, perl is not).
-	Rebuild perl from the sources, using the '-w32' compile switch,
-	and link static. The also required '-lpthread' switch should be 
-	generated by Makefile.PL.
 
 SOLID NOTES:
 
-	Solid server versions < 2.20.017 may have broken autocommit 
-	behaviour (changes to tables within a solid procedure MAY 
-	be rolled back).
-
-	Solutions:
-		1. (preferred) upgrade - it doesn't hurt.
-		2. Upgrade!!!
-		3. You may add -DSOL22_AUTOCOMMIT_BUG to the 'defines' 
-		   on top of Makefile.PL, causing DBD::Solid to
-		   do the AutoCommit.
 
 ===============================================================================
 Examples and other info:
 
 All the tests in the t/ subdirectory ARE examples of DBI usage.
 
-SOLID 'home page': http://www.solid.fi
+SOLID 'home page': http://www.solidtech.com
 
 DBI 'home page': http://www.hermetica.com/technologia/DBI
-
-Master archive site for Perl DB information:
-    ftp://ftp.demon.co.uk/pub/perl/db/
-
-Searchable index of the dbi-users mailing list:
-	http://www.coe.missouri.edu/~faq/lists/dbiusers/
-
-Email:
-   slagel@geospiza.com
 
 End.
