@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl -sw
 #
-# $Id: Makefile.PL,v 1.3 1997/03/20 01:11:25 tom Exp $
+# $Id: Makefile.PL,v 1.4 1997/05/10 06:31:30 tom Exp $
 # Copyright (c) 1997  Thomas K. Wenrich
 #
 # You may distribute under the terms of either the GNU General Public
@@ -46,9 +46,9 @@ my %opts =
     dist  => { DIST_DEFAULT=> 'clean distcheck disttest ci tardist',
                 PREOP => '$(MAKE) -f Makefile.old distdir' },
     'OBJECT'    => qw( $(O_FILES) ),
-#     'OPTIMIZE'  => '-g -O0',
+#    'OPTIMIZE'  => '-g -O0',
 );
-$opts{LINKTYPE} = 'static',
+$opts{LINKTYPE} = 'static';
 
 
 print "\nConfiguring DBD::Solid ...\n
@@ -125,18 +125,36 @@ sub find_lib
     {
     my $link = shift(@_) ? 'static' : 'dynamic';
     my @dirs = @_;
+    
+    #------------------------------------------------------------
+    # data for linking; 
+    #------------------------------------------------------------
+    my $linux_stat_names = [qw(scllux22.a 
+			       solcli.a)];
+    my $linux_dyn_names  = [qw(libbcllux22.a
+		 	          bcllux22.so
+			       libscllux22.a
+			          scllux22.a
+			         libsolcli.a
+			            solcli.a)];
+
     my $names = 
     	{
-	'linux' => { 'static' => [qw(scllux22.a 
-				     solcli.a)],
-		     'dynamic'=> [qw(libbcllux22.a
-				        bcllux22.so
-				     libscllux22.a
-				        scllux22.a
-				     libsolcli.a
-				        solcli.a)],
+	'linux' => { 'static' => $linux_stat_names,
+		     'dynamic' => $linux_dyn_names,
 		   },
-    	};
+	};
+
+    unless (defined($names->{$Config{osname}}))
+	{
+	print <<_eot;
+Your O/S is currently not supported in Makefile.PL.
+Please add your library names to the find_lib function, try it and
+mail your changes to wenrich\@ping.at.
+_eot
+        die;
+	}
+
     my $wanted = sub 
 	{
 	if ($_ eq $::wanted_lib && -r $_)

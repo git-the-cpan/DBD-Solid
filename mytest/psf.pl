@@ -23,6 +23,8 @@ my $cnt = insert($dbh, $table, $colref, $data);
 my $t2 = time();
 my $dt = $t2 - $t1;
 
+$dbh->commit();
+
 
 print "*** PSF: check overhead\n";
 my $t1 = time();

@@ -1,29 +1,19 @@
+#!/usr/bin/perl -I./t
 $|=1;
 print "1..$tests\n";
 
 require DBI;
 use DBD::Solid::Const qw(:sql_types);
+use testenv;
 
 my (@row);
-my $SOLID_USER=$ENV{'SOLID_USER'};
-$SOLID_USER = '' unless ($SOLID_USER);
-my $SOLID_DSN=$ENV{'SOLID_DSN'};
-$SOLID_DSN = '' unless ($SOLID_DSN);
 
-# test user-supplied data.
-
-my ($user, $pass) = split(/\W/, $SOLID_USER);
-$user = uc($user);
-print "not " unless($user && $pass);
+my ($dsn, $user, $pass) = soluser();
 print "ok 1\n";
-print STDERR "Please define the SOLID_USER environment variable."
-	unless ($user && $pass);
-exit(1) unless($user && $pass);
 
-my $dbh = DBI->connect($SOLID_DSN, $user, $pass, 'Solid'); 
-print "not " unless($dbh);
+my $dbh = DBI->connect($dsn, $user, $pass, 'Solid')
+    or exit(0);
 print "ok 2\n";
-exit(1) unless($dbh);
 
 #### testing set/get of connection attributes
 

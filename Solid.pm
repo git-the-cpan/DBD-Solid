@@ -1,4 +1,4 @@
-# $Id: Solid.pm,v 1.5 1997/03/20 01:11:25 tom Exp $
+# $Id: Solid.pm,v 1.6 1997/05/10 06:31:30 tom Exp $
 # Copyright (c) 1997  Thomas K. Wenrich
 # portions Copyright (c) 1994,1995,1996  Tim Bunce
 #
@@ -15,16 +15,17 @@ require 5.003;
 
     @ISA = qw(DynaLoader);
 
-    $VERSION = '0.04';
-    my $Revision = substr(q$Revision: 1.5 $, 10);
+    $VERSION = '0.05';
+    my $Revision = substr(q$Revision: 1.6 $, 10);
 
-    require_version DBD::Solid::Const 0.02;
-    require_version DBI 0.77;
+    require_version DBD::Solid::Const 0.03;
+    require_version DBI 0.78;
 
     bootstrap DBD::Solid $VERSION;
 
     $err = 0;		# holds error code   for DBI::err
     $errstr = "";	# holds error string for DBI::errstr
+    $sqlstate = "00000";
     $drh = undef;	# holds driver handle once initialised
 
     sub driver{
@@ -40,6 +41,7 @@ require 5.003;
 	    'Version' => $VERSION,
 	    'Err'    => \$DBD::Solid::err,
 	    'Errstr' => \$DBD::Solid::errstr,
+	    'State' => \$DBD::Solid::sqlstate,
 	    'Attribution' => 'Solid DBD by Thomas K. Wenrich',
 	    });
 
@@ -55,6 +57,9 @@ require 5.003;
 
     sub errstr {
 	DBD::Solid::errstr(@_);
+    }
+    sub err {
+	DBD::Solid::err(@_);
     }
 
     sub connect {

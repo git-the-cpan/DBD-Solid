@@ -17,6 +17,7 @@ t/02simple.t
 t/03dbatt.t
 t/04long.t
 t/05meth.t
+t/testenv.pm
 mytest/psf.pl
 mytest/msl.pl
 bench/psf.pl

@@ -1,19 +1,24 @@
 Hi everybody,
 
-DBD::Solid v0.04 is ready for another try.
+DBD::Solid is a driver module to access the SOLID RDBMS using 
+Tim Bunce's DBI interface. 
 
-DBD::Solid is a perl module to access the SOLID RDBMS, one of the 
-few SQL/ODBC databases engines available for Linux and for other UNIX 
-and non-UNIX platforms.
+SOLID is one of the few SQL/ODBC databases engines available for 
+Linux and for other UNIX and non-UNIX platforms.
 
-The most important changes in this release are:
-	* blob_read() is working now (at least with Solid v2.2).
-	* experimental support for dynamic loading.
-	* $sth->{TYPES} now returns numeric values. Corresponding 
-	  constants can be imported from DBD::Solid::Const. 
-	* Changed errorhandling.
-	* Makefile.PL knows about Solid 2.2 filenames.
-	* a few, but ugly bugs are fixed.
+Changes in this release are:
+	* truncate of LONG fields is now working
+	* some minor bugs are fixed
+	* error handling complies to the DBI draft specification
+	  ($h->err, $h->errstr and $h->state should be full functional)
+	* Makefile.PL is now a bit more intelligent
+	* Tested with Perl5.003_95 and DBI-0.81
+
+Following DBI features are currently NOT supported:
+	$h->{CompatMode}
+	$h->{InactiveDestroy}
+	$h->{ChopBlanks}
+	$dbh->ping
 
 I tested this only with i486 Linux. Porting to other UNIX systems should be
 easy, with VMS or NT you are at your own.
@@ -21,6 +26,8 @@ easy, with VMS or NT you are at your own.
 The source of DBD::Solid is available from
 
 	http://members.ping.at/wenrich/DBD-Solid.html
+     or from CPAN (Authors/TWENRICH/DBD-Solid-0.05.tar.gz)
+
 
 Information about the SOLID database can be found via
 

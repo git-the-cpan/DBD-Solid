@@ -1,7 +1,33 @@
 Revision history for Perl extension DBD::Solid.
 
-0.01  Tue Dec 31 07:02:39 1996
-	- original version; created by h2xs 1.16
+0.05   Sat May 10 03:24:12 MET DST 1997
+	* truncate of LONG fields is now working
+	* some minor bugs, especially tests, are fixed
+	* error handling complies to the DBI draft
+	  ($h->err, $h->errstr and $h->state should be full functional)
+	* Makefile.PL is now a bit more intelligent
+	* Tested with Perl5.003_95 and DBI-0.81
+
+0.04   
+	- The 0.03 test problem is FIXED.
+       	- Bugfix fetchrow(): returns truncated LONG VARCHAR columns now 
+       		with the truncated size, not padded with random 
+		memory contents.
+       	- Bugfix fetchrow(): TIMESTAMP values are now converted to 
+       		ascii without forgetting the time value. This is
+		done using sprintf(). 
+		No way with implicit TIMESTAMP=>C_CHAR conversion (???)
+       	- Makefile.PL: 
+       		added Solid-2.2 filenames.
+		added [experimental] shared linking with static
+			Solid libraries.
+       	- blob_read() works! - at least with Solid-2.2.
 
 0.02  Tue Feb 26 03:12:57 1997
 	- released V0.02
+
+0.01  Tue Dec 31 07:02:39 1996
+	- original version; created by h2xs 1.16
+
+
+

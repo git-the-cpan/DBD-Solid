@@ -1,31 +1,18 @@
+#!/usr/bin/perl -I./t
 $| = 1;
 print "1..$tests\n";
 
 require DBI;
+use testenv;
 
-my $SOLID_USER=$ENV{'SOLID_USER'};
-$SOLID_USER = '' unless ($SOLID_USER);
-my $SOLID_DSN=$ENV{'SOLID_DSN'};
-$SOLID_DSN = '' unless ($SOLID_DSN);
-
-# test user-supplied data.
-
-print " Test 1: checking environment\n";
-print "  SOLID_USER: '$SOLID_USER'\n";
-print "  SOLID_DSN: '$SOLID_DSN'\n";
-my ($user, $pass) = split(/\W/, $SOLID_USER);
-$user = uc($user);
-print "not " unless($user && $pass);
+my ($dsn, $user, $pass) = soluser();
 print "ok 1\n";
-print STDERR "Please define the SOLID_USER environment variable.\n"
-	unless ($user && $pass);
 
 print " Test 2: connecting to the database\n";
-my $dbh = DBI->connect($SOLID_DSN, $user, $pass, 'Solid');
-print "not " unless($dbh);
+my $dbh = DBI->connect($dsn, $user, $pass, 'Solid');
+exit(0) unless($dbh);
 print "ok 2\n";
 
-exit(1) unless($dbh);
 
 #### testing a simple select
 
@@ -52,12 +39,12 @@ my @data =
     ( [ 1, 'foo', 'foo varchar' ],
       [ 2, 'bar', 'bar varchar' ],
     );
-my $rc = tab_insert($dbh, \@data);
+$rc = tab_insert($dbh, \@data);
 print "not " unless($rc);
 print "ok 5\n";
 
 print " Test 6: select test data\n";
-my $rc = tab_select($dbh, \@data);
+$rc = tab_select($dbh, \@data);
 print "not " unless($rc);
 print "ok 6\n";
 
@@ -151,15 +138,21 @@ SELECT 1
     	{
 	$rc = $row[0];
 	}
-    if ($DBI::errstr) {
-	print STDERR $DBI::errstr, "\n";
-    	$sth->finish(); 
-	return -1; 
+    if ($dbh->err !=  0) {
+	print ' $dbh->err:', $dbh->err, "\n";
+	print ' $dbh->errstr:', $dbh->errstr, "\n";
+	print ' $dbh->state:', $dbh->state, "\n";
+	if ($sth->err < 0)
+	    {
+    	    $sth->finish(); 
+	    return -1;
+	    }
 	}
     unless ($sth->finish()) {
 	print STDERR $DBI::errstr, "\n";
 	return -1;
 	}
+    print " tab_exists() returns '$rc'\n";
     $rc;
     }
 __END__

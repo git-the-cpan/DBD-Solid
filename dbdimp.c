@@ -1,4 +1,4 @@
-/* $Id: dbdimp.c,v 1.5 1997/03/20 01:11:25 tom Exp $
+/* $Id: dbdimp.c,v 1.6 1997/05/10 06:31:30 tom Exp $
  * 
  * Copyright (c) 1997  Thomas K. Wenrich
  * portions Copyright (c) 1994,1995,1996  Tim Bunce
@@ -100,6 +100,9 @@ dbd_db_login(dbh, dbname, uid, pwd)
 	return 0;
 	}
 
+    if (dbis->debug >= 2)
+	fprintf(DBILOGFP, "connect '%s', '%s', '%s'",
+		dbname, uid, pwd);
     rc = SQLConnect(imp_dbh->hdbc,
 		    dbname, strlen(dbname),
 		    uid, strlen(uid),
@@ -223,6 +226,12 @@ solid_error(h, badrc, what)
     SV *errstr = DBIc_ERRSTR(imp_xxh);
 
     sv_setpvn(errstr, ErrorMsg, 0);
+    sv_setiv(DBIc_ERR(imp_xxh), (IV)badrc);
+    /* 
+     * sqlstate isn't set for SQL_NO_DATA returns.
+     */
+    strcpy(sqlstate, "00000");
+    sv_setpvn(DBIc_STATE(imp_xxh), sqlstate, 5);
     
     switch(DBIc_TYPE(imp_xxh))
 	{
@@ -247,11 +256,10 @@ solid_error(h, badrc, what)
     while (i >= 0)
 	{
 	RETCODE rc = 0;
-#if 0
-	printf("solid_error: badrc=%d rc=%d i=%d hstmt %d hdbc %d henv %d\n", 
+	if (dbis->debug >= 3)
+	    fprintf(DBILOGFP, "solid_error: badrc=%d rc=%d i=%d hstmt %d hdbc %d henv %d\n", 
 	       badrc, rc, i,
 	       hstmt, hdbc, henv);
-#endif
 	switch(i--)
 	    {
 	    case 2:
@@ -285,6 +293,11 @@ solid_error(h, badrc, what)
 		sv_catpv(errstr, "(SQL-");
 		sv_catpv(errstr, sqlstate);
 		sv_catpv(errstr, ")\n");
+		sv_setpvn(DBIc_STATE(imp_xxh), sqlstate, 5);
+		if (dbis->debug >= 3)
+	    	    fprintf(DBILOGFP, 
+		        "solid_error values: sqlstate %0.5s\n",
+				sqlstate);
 		}
 	    }
 	while (rc == SQL_SUCCESS || rc == SQL_SUCCESS_WITH_INFO);

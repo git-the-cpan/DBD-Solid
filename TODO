@@ -1,11 +1,17 @@
 Priority 1:
 	* verify working bind_param() function for LONG inserts.
-	* add SQLSTATE variable
 	* switching DATE/TIME values to a useable format (i.e. seconds/1970) 
 	  by setting an attribute. Having this in the DBI spec
 	  would be nice.
-
+	* $sth->state isn't working (DBI ???)
+	* add new DBI features:
+		$h->{CompatMode}
+		$h->{InactiveDestroy}
+		$h->{ChopBlanks}
+		$dbh->ping
+	
 Priority 2: 
+	* enable/disable character set conversions.
 	* check row locking works and how to do locking with SOLID.
 	* save memory by fetching numeric and date/time values 
 	  _binary_ from solid.
