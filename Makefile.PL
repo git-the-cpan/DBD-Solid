@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl -sw
 #
-# $Id: Makefile.PL,v 1.10 1997/07/21 23:13:32 tom Exp $
+# $Id: Makefile.PL,v 1.11 1997/11/20 14:17:22 tom Exp $
 # Copyright (c) 1997  Thomas K. Wenrich
 #
 # You may distribute under the terms of either the GNU General Public
@@ -11,6 +11,7 @@ use Config;
 use ExtUtils::MakeMaker 5.16, qw(&WriteMakefile $Verbose);
 use strict;
 use File::Find;			# for searching Solid files
+use DBI 0.86;
 
 # See lib/ExtUtils/MakeMaker.pm for details of how to influence
 # the contents of the Makefile that is written.
@@ -43,6 +44,7 @@ my %opts =
     'VERSION_FROM' => 'Solid.pm', # finds $VERSION
     'LIBS'	=> [''],   # e.g., '-lm' 
     'DEFINE'	=> '',     # e.g., '-DHAVE_SOMETHING' 
+    	# '-DSOL22_AUTOCOMMIT_BUG'
     'INC'	=> '',     # e.g., '-I/usr/include/other' 
     dist  => { DIST_DEFAULT=> 'clean distcheck disttest ci tardist',
                 PREOP => '$(MAKE) -f Makefile.old distdir' },

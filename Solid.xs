@@ -1,4 +1,4 @@
-/* $Id: Solid.xs,v 1.7 1997/07/02 20:23:06 tom Exp $	*/
+/* $Id: Solid.xs,v 1.8 1997/11/20 14:17:22 tom Exp $	*/
 /* Copyright (c) 1997  Thomas K. Wenrich				  */
 /* portions Copyright (c) 1994,1995,1996  Tim Bunce			  */
 /*									  */
@@ -115,6 +115,9 @@ DESTROY(dbh)
 		SvPV(dbh,na));
     }
     else {
+        if (DBIc_IADESTROY(imp_dbh)) { /* want's ineffective destroy    */
+            DBIc_ACTIVE_off(imp_dbh);
+        }
 	if (DBIc_ACTIVE(imp_dbh)) {
 	    if (DBIc_WARN(imp_dbh) && !dirty)
 		 warn("Database handle destroyed without explicit disconnect");
@@ -295,6 +298,9 @@ DESTROY(sth)
 		SvPV(sth,na));
     }
     else {
+        if (DBIc_IADESTROY(imp_sth)) { /* want's ineffective destroy    */
+            DBIc_ACTIVE_off(imp_sth);
+        }
 	if (DBIc_ACTIVE(imp_sth))
 	    dbd_st_finish(sth);
 	dbd_st_destroy(sth);

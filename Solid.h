@@ -1,5 +1,5 @@
 /*
- * $Id: Solid.h,v 1.5 1997/07/02 20:23:06 tom Exp $
+ * $Id: Solid.h,v 1.6 1997/11/20 14:17:22 tom Exp $
  * Copyright (c) 1997  Thomas K. Wenrich
  * portions Copyright (c) 1994,1995,1996  Tim Bunce
  *
@@ -15,6 +15,11 @@
 #include <cli0env.h>
 
 #include "dbdimp.h"
+
+#ifndef DBIc_IADESTROY		/* IADESTROY added after DBI-0.87 */
+#define DBIc_IADESTROY(x) 0
+#endif
+
 
 void dbd_init _((dbistate_t *dbistate));
 

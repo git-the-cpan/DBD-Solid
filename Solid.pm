@@ -1,4 +1,4 @@
-# $Id: Solid.pm,v 1.11 1997/07/21 23:13:32 tom Exp $
+# $Id: Solid.pm,v 1.12 1997/11/20 14:17:22 tom Exp $
 # Copyright (c) 1997  Thomas K. Wenrich
 # portions Copyright (c) 1994,1995,1996  Tim Bunce
 #
@@ -15,8 +15,8 @@ require 5.003;
 
     @ISA = qw(DynaLoader);
 
-    $VERSION = '0.08';
-    my $Revision = substr(q$Revision: 1.11 $, 10);
+    $VERSION = '0.09';
+    my $Revision = substr(q$Revision: 1.12 $, 10);
 
     require_version DBD::Solid::Const 0.03;
     require_version DBI 0.86;
@@ -129,6 +129,15 @@ require 5.003;
 	$sth;
     }
 
+    sub ping {
+        # assuming a prepare will need a connection to the database
+        #
+	my($dbh) = @_;
+	my $sth = $dbh->prepare("select table_name from tables")
+	    or return undef;
+	$sth->finish();
+	1;
+    }
 }
 
 
@@ -190,7 +199,7 @@ for using it.
   $h->{Warn}		used to deactivate 'Depreciated 
 			feature' warnings
   $h->{CompatMode}	not used
-  $h->{InactiveDestroy}	handled by DBI (?)
+  $h->{InactiveDestroy}	supported
   $h->{PrintError}	handled by DBI
   $h->{RaiseError}	handled by DBI
   $h->{ChopBlanks}	full support
@@ -256,9 +265,8 @@ for using it.
 	commit the transaction before calling 
 	disconnect
 
-  $rc = $dbh->ping()			no support
-					(due to ongoing 
-					discussion about)
+  $rc = $dbh->ping()			supported; executes prepare 
+                                        "select table_name from tables"
 
   $rc = $dbh->quote()			handled by DBI
   $rc = $sth->execute()			full support
