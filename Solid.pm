@@ -1,4 +1,4 @@
-# $Id: Solid.pm,v 1.10 1997/07/14 19:22:48 tom Exp $
+# $Id: Solid.pm,v 1.11 1997/07/21 23:13:32 tom Exp $
 # Copyright (c) 1997  Thomas K. Wenrich
 # portions Copyright (c) 1994,1995,1996  Tim Bunce
 #
@@ -15,11 +15,11 @@ require 5.003;
 
     @ISA = qw(DynaLoader);
 
-    $VERSION = '0.07';
-    my $Revision = substr(q$Revision: 1.10 $, 10);
+    $VERSION = '0.08';
+    my $Revision = substr(q$Revision: 1.11 $, 10);
 
     require_version DBD::Solid::Const 0.03;
-    require_version DBI 0.84;
+    require_version DBI 0.86;
 
     bootstrap DBD::Solid $VERSION;
 
@@ -123,7 +123,7 @@ require 5.003;
 			table_type,
 			remarks TABLE_REMARKS
 		  FROM  tables",
-		  {'solid_blob_size' => 4096,
+		  {'LongReadLen' => 4096,
 		  });
 	$sth->execute or return undef;
 	$sth;
@@ -179,7 +179,7 @@ for using it.
 	Connects via tcp/ip to remote database listening on
 	port 1313 at host "somewhere.com".
 	NOTE: It depends on the Solid license whether 
-	      TCP connections to 'localhost' are possible.
+	      TCP connections (even to 'localhost') are possible.
 
 =item Common handle functions
 
@@ -190,11 +190,13 @@ for using it.
   $h->{Warn}		used to deactivate 'Depreciated 
 			feature' warnings
   $h->{CompatMode}	not used
-  $h->{InactiveDestroy}	handled by DBI ?
-  $h->{PrintError}	handled by DBI ?
-  $h->{RaiseError}	handled by DBI ?
+  $h->{InactiveDestroy}	handled by DBI (?)
+  $h->{PrintError}	handled by DBI
+  $h->{RaiseError}	handled by DBI
   $h->{ChopBlanks}	full support
   $h->trace(...)	handled by DBI
+  $h->{LongReadLen}	full support
+  $h->{LongTruncOk}	full support
   $h->func(...)		no functions defined yet
 
 =item Database handle functions
@@ -205,22 +207,27 @@ for using it.
 		$statement, 
 		\%attr);
 
-	DBD::Solid note: As the DBD driver looks for 
-	placeholders within the statement, additional 
-	to the ANSI style '?' placeholders the Solid 
-	driver can parse :1, :2 and :foo style 
-	placeholders (like Oracle).
+	DBD::Solid note: As the DBD driver looks for placeholders within 
+	the statement, additional to the ANSI style '?' placeholders 
+	the Solid driver can parse :1, :2 and :foo style placeholders 
+	(like Oracle). 
 
  	\%attr values:
 
-	{solid_blob_size => number}
+	{LongReadLen => number}
 
-	May be useful when you know that the LONG values 
-	fetched from the query will have a maximum size.
-	Allows to handle LONG columns like any other 
-	column.
-	pre 0.07 DBD drivers use the 'blob_size' syntax, 
-	which is depreciated since DBD::Solid 0.07.
+	May be useful when you know that the LONG values fetched from 
+	the query will have a maximum size.
+	Allows to handle LONG columns like any other column.
+
+	History note:
+	DBD::Solid 0.07 and above: 
+		the attribute 'blob_size' triggers a 'depreciated 
+		feature' warning when warnings are enabled.
+        DBD::Solid 0.08 and above:
+		the attribute 'solid_blob_size' triggers a 
+		depreciated feature' warning when warnings are enabled
+		(because DBI 0.86+ specifies a LongReadLen attribute).
 
   $rc = $dbh->do($statement)		full support
   $rc = $dbh->commit()			full support
@@ -233,7 +240,7 @@ for using it.
 	characterset translation, just in the case 
 	Solid doesn't guess the default translation 
 	(based on operating system and adjustable 
-	by a solid.ini in the working directory) 
+	by a solid.ini parameter in the working directory) 
         right.
 
 	Possible values are:

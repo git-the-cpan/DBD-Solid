@@ -1,5 +1,5 @@
 /*
- * $Id: dbdimp.h,v 1.8 1997/07/11 07:30:30 tom Exp $
+ * $Id: dbdimp.h,v 1.9 1997/07/21 23:13:32 tom Exp $
  * Copyright (c) 1997  Thomas K. Wenrich
  * portions Copyright (c) 1994,1995,1996  Tim Bunce
  *
@@ -67,8 +67,10 @@ struct imp_sth_st {
     HV        *params_hv;	/* see preparse function */
     AV        *params_av;	/* see preparse function */
 
+#if 0 /* now handled by DBIc_ macros */
     int       long_buflen;      /* length for long/longraw (if >0)	*/
     int       long_trunc_ok;    /* is truncating a long an error	*/
+#endif
 
     SWORD     n_result_cols;	/* number of result columns */
 
@@ -162,18 +164,18 @@ struct phs_st {  	/* scalar placeholder EXPERIMENTAL	*/
 };
 
 
+/*
+ * function called by solid_error to decide whether solid_error should
+ * set error flag for DBI
+ */
+typedef int (*T_IsAnError) _((SV *h, 
+		     RETCODE rc, 
+		     char *sqlstate, 
+		     const void *par
+		     ));
 
-
-void	solid_error _((SV *h, RETCODE rc, char *what));
-#if 0
-void	ora_error _((SV *h, Lda_Def *lda, int rc, char *what));
-void	fbh_dump _((imp_fbh_t *fbh, int i, int cacheidx));
-
-void	dbd_init _((dbistate_t *dbistate));
-void	dbd_preparse _((imp_sth_t *imp_sth, char *statement));
-int 	dbd_describe _((SV *h, imp_sth_t *imp_sth));
-int 	dbd_st_blob_read _((SV *sth, int field, long offset, long len,
-			SV *destrv, long destoffset));
-
-#endif
+const char *solid_error5 _((SV *h, RETCODE rc, char *what, 
+			  T_IsAnError func, const void *par));
+#define solid_error(a,b,c) solid_error5(a,b,c,NULL, NULL);
+/* const char *solid_error _((SV *h, RETCODE rc, char *what)); */
 /* end */

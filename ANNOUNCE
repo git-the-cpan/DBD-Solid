@@ -1,7 +1,12 @@
-Hi everybody,
+Friends, 
 
-DBD::Solid is a driver module to access the SOLID RDBMS from 
-the perl language using the DBI interface.
+I just uploaded DBD::Solid 0.08 to CPAN. I'm sorry for this short
+release cycle, but today it's hard to fix bugs AND conform
+to the last DBI specification at the same time.
+
+DBD::Solid is a driver code that enables Perl 5.003 and 5.004
+to access the Solid RDBMS via the DBI module (you will need
+the code for the latest release of DBI and DBD::Solid).
 
 Tim Bunce's DBI module is *the* standard way to access a number of 
 different databases from perl.
@@ -9,12 +14,16 @@ different databases from perl.
 SOLID is one of the few SQL/ODBC databases engines available for 
 Linux and for other UNIX and non-UNIX platforms.
 
-Changes:
+New in this release (compared to 0.06):
     Bugfixes:
-	* bind_columns works immediate after the describe.
-        * AutoCommit is done by the driver itself [Solid bug ???]
+	* bind_columns now works immediate after the describe.
+        * AutoCommit is done by the driver itself to 
+	  work around a bug in Solid 2.20.0007 (which is fixed 
+	  in Solid Server 2.20.0019)
 	* disconnect() rollbacks or commits depending 
 	  on AutoCommit.
+        * fixed memory leak in $sth DESTROY function (thanks, Tim)
+	* fixed LINKTYPE=static in Makefile.PL
     DBI compliance fixes:
         * $dbh->{AutoCommit} is ON by default.
 	* $h->{ChopBlanks} was implemented.
@@ -22,6 +31,10 @@ Changes:
 	  as $h->rows(), so returns -1 after executing a SELECT).
 	* $sth->rows() counts the rows actually fetched from the
 	  database.
+        * added $h->{LongReadLen} and $h->{LongTruncOk} as specified
+	  by DBI-0.86
+	* the new $h->{PrintError} attribute required changes to 
+	  DBD::Solid's error handling.
     Enhancements:
 	* The write/only attribute $dbh->{solid_characterset} may be
 	  used to activate Solid's character set translation features.
@@ -34,16 +47,19 @@ Changes:
 	  too)
         * Some pod documentation was added, describing DBD::Solid 
 	  specific issues.
-    INCOMPATIBILITIES:
+    POSSIBLE INCOMPATIBILITIES:
     	* It's not longer possible to set the size of the buffer 
 	  used to fetch LONG columns using the $sth->{blob_size} syntax.
-	  You may use either the solid_blob_size attribute to prepare()
-	  or the blob_read function.
-        * After fetching all rows, $sth->err becomes zero instead 
-	  of +100 to suppress weird messages from $h->{PrintError} 
-	  at end of each fetch.
-        * Still unsupported DBI attributes:
-	  $dbh->ping
+	  You may use either the new LongReadLen attribute to prepare()
+	  or the blob_read() function.
+	* The prepare attributes blob_size and solid_blob_size
+	  may print warnings, as {LongReadLen} specified by 
+	  DBI has the same function.
+	* $sth->err is not longer set to +100 to indicate end of 
+	  fetch for both the $sth->fetch_xxx() functions and 
+	  for blob_read(). The ONLY way to detect end-of-fetch
+	  is to check whether fetch_xxx() or blob_read() returns
+	  undef.
 
 Tested using:
 	* Linux 2.0.29+libc5.4.23
@@ -62,7 +78,8 @@ The source of DBD::Solid is available from
      or from CPAN (authors/TWENRICH/DBD-Solid-0.07.tar.gz)
 
      You will also need:
-	* the most recent DBI driver module
+        * Perl (of course!), Version 5.003 or better
+	* the most recent DBI driver module (currently V 0.87)
 	* the Solid development system
 
 Information about the SOLID database can be found via
@@ -70,6 +87,6 @@ Information about the SOLID database can be found via
 	http://www.solid.fi/
      or http://www.solidtech.com/
 
-Greetings
+Regards,
 
 Thomas

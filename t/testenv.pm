@@ -26,6 +26,7 @@ sub soluser
         print STDERR "Please define the SOLID_USER environment variable.\n";
 	exit(0);
 	}
+    $dsn = "dbi:Solid:" . $dsn;
     ($dsn, $user, $pass);
     }
 1;

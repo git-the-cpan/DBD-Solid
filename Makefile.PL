@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl -sw
 #
-# $Id: Makefile.PL,v 1.9 1997/07/11 07:30:30 tom Exp $
+# $Id: Makefile.PL,v 1.10 1997/07/21 23:13:32 tom Exp $
 # Copyright (c) 1997  Thomas K. Wenrich
 #
 # You may distribute under the terms of either the GNU General Public
@@ -42,7 +42,7 @@ my %opts =
     'NAME'	=> 'DBD::Solid',
     'VERSION_FROM' => 'Solid.pm', # finds $VERSION
     'LIBS'	=> [''],   # e.g., '-lm' 
-    'DEFINE'	=> '-DSOL22_AUTOCOMMIT_BUG',     # e.g., '-DHAVE_SOMETHING' 
+    'DEFINE'	=> '',     # e.g., '-DHAVE_SOMETHING' 
     'INC'	=> '',     # e.g., '-I/usr/include/other' 
     dist  => { DIST_DEFAULT=> 'clean distcheck disttest ci tardist',
                 PREOP => '$(MAKE) -f Makefile.old distdir' },
@@ -116,9 +116,10 @@ print $inc, "\n";
 print "\n";
 
 $opts{INC}  = "-I\$(INSTALLSITEARCH)/auto/DBI"
-		. " -I\$(INSTALLSITEARCH)"
-	### . " -I\$(INSTALLSITEARCH)/DBI"  # OOOOLD DBI
-		. " -I\$(INSTALLARCHLIB)";
+	      . " -I\$(INSTALLSITEARCH)"
+	###   . " -I\$(INSTALLSITEARCH)/DBI"  # OOOOLD DBI
+	###   . " -I\$(INSTALLARCHLIB)"
+		;
 $opts{macro} = {
 	SOLID_LIBRARY => $lib,
 	SOLID_INCLUDE => $inc,
@@ -153,6 +154,7 @@ else
 	print "\tSo we'll use STATIC linking.\n";
 	}
     $opts{macro}->{EXTRALIB} = '$(SOLID_LIBRARY)';
+    $opts{'LINKTYPE'} = 'static';
     }
 
 sub MY::pasthru {
@@ -287,7 +289,11 @@ sub OS_Options
 	}
     elsif ($osname eq "solaris")
     	{
-        push(@{$opts->{LIBS}}, "-lpthread")
+        push(@{$opts->{LIBS}}, "-lpthread");
+	}
+    elsif ($osname eq "irix")
+    	{
+        push(@{$opts->{LIBS}}, "-lpthread");
 	}
     }
 

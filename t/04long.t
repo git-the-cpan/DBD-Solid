@@ -25,7 +25,11 @@ close(PROG);
 # test inserting LONG VARBINARY
 # 1. using DBD::Solid's default bindings
 #--------------------------------------------------
+
+$dbh->{PrintError} = 0;
 $dbh->do('drop table blob_test');
+$dbh->{PrintError} = 1;
+
 $dbh->do(<<"/");
 CREATE TABLE blob_test (
     A integer,
@@ -59,7 +63,7 @@ $dbh->commit();
 #------------------------
 $sth = $dbh->prepare(
 	"SELECT A, LVB FROM blob_test WHERE A=:1", 
-	{ 'solid_blob_size' => 4096 });
+	{ 'LongReadLen' => 4096 });
 ### $sth->{blob_size} = 4096;			# unsupported since 0.07
 if ($sth->execute(1) && (@row = $sth->fetchrow()))
     {
@@ -85,14 +89,13 @@ while ($frag = $sth->blob_read(1, $offset, 100))
     {
     $offset += length($frag);
     $blob .= $frag;
-    last if ($sth->err == 100);		# end of data
     }
 print "not " unless $blob eq $longdata;
 print "ok 6\n";
 $sth->finish();
 
 $sth = $dbh->prepare("SELECT A, LVB FROM blob_test WHERE A=:1",
-		     {'solid_blob_size' => 64 });
+		     {'LongReadLen' => 64 });
 $sth->execute(1);
 my ($x, $y);
 $sth->bind_columns(undef, \$x, \$y);
@@ -103,11 +106,14 @@ if ($sth->fetch())
     print " errstr: ", $dbh->errstr, "\n";
     # print " y: >>", $y, "<<\n";
     # print "longdata: >>", substr($longdata, 0, 64), "<<\n";
-    print "not " unless($y eq substr($longdata, 0, 64) && $sth->err);
+    print "not " unless($y eq substr($longdata, 0, 64));
     }
-$sth->finish();
 print "ok 7\n";
 
-BEGIN { $tests = 7; }
+print "not " if ($sth->err);	# check LongTruncOk flag
+print "ok 8\n";
+$sth->finish();
+
+BEGIN { $tests = 8; }
 
 $dbh->disconnect();

@@ -1,6 +1,6 @@
 DBD::Solid -- DBD module interfacing the SOLID database.
 
-   $Id: README,v 1.5 1997/07/02 20:23:06 tom Exp $
+   $Id: README,v 1.6 1997/07/21 23:13:32 tom Exp $
    Copyright (c) 1997  Thomas K. Wenrich
    portions Copyright (c) 1994,1995,1996  Tim Bunce
 
@@ -15,6 +15,16 @@ DBD::Solid -- DBD module interfacing the SOLID database.
 *  DBD-Oracle distribution. 
 *  However, any bugs and errors herein are most likely my fault, not 
 *  those of Tim Bunce.
+
+IMPORTANT NOTICE:
+    Since July 1997 a working alpha release of the DBD::ODBC
+    module is available. 
+    It's most likely that there will be *NO* further development 
+    on DBD::Solid's C code as soon as DBD::ODBC becomes stable
+    and supports the features DBD::Solid has today.
+    However, it might be possible that there will be a DBD::Solid
+    module adding some Solid specific functions to DBD::ODBC and
+    linking DBD::ODBC against Solid's client library.
 
 *BEFORE* BUILDING, TESTING AND INSTALLING this you will need to:
 
@@ -156,6 +166,30 @@ Thomas.
 ===============================================================================
 OPERATING SYSTEM NOTES:
 
+It's quite possible that Makefile.PL misses something for the
+special system/perl/solid version combination you use. The
+most common problems are:
+
+Linker problems:
+ (1) The linker barfs at you, saying something about 'unresolved
+     symbols'. 
+       Try to compile and link the examples coming with the
+       client library from Solid.
+       When you can't manage to build Solid's examples, Solid tech 
+       support should be able to help you.
+       When Solid's examples are working fine, you may try to
+       modify Makefile.pl, adding the libraries/switches/defines
+       you found while building the examples.
+
+ (2) Perl's Dynloader tells you it "Can't load .../Solid.so", 
+     followed [possible] by messages about unresolved symbols 
+     called 'SQLAllocEnv' and other 'SQLxxxx' symbols.
+       This is also a linker problem. You may try to build a
+       static perl binary; if this also fails, try (1).
+
+In general, you may try to use another version of the Solid 
+client library.
+
 Solaris:
 	Some Solaris versions(2.5.1 and 2.4) are reported to have 
 	problems with the Solid v2.2 development system.
@@ -173,7 +207,10 @@ SCO 3.2 (the COFF based SCO)
 
 IRIX:
 	With irix 5.3 there seem to be problems connecting to a Solid 
-	server via tcp/ip. irix 6.2 is reported to work fine.
+	server via tcp/ip. irix 6.2 is reported to work fine, using
+	the Solid 2.1 client library.
+
+
 
 ===============================================================================
 Examples and other info:
@@ -188,6 +225,6 @@ Master archive site for Perl DB information:
 Mailing list archive:                /DBI/perldb-interest/
 
 Searchable index of the dbi-users mailing list:
-http://www.coe.missouri.edu/~faq/lists/dbiusers/
+	http://www.coe.missouri.edu/~faq/lists/dbiusers/
 
 End.

@@ -1,4 +1,4 @@
-/* $Id: dbdimp.c,v 1.12 1997/07/14 19:22:48 tom Exp $
+/* $Id: dbdimp.c,v 1.13 1997/07/21 23:13:32 tom Exp $
  * 
  * Copyright (c) 1997  Thomas K. Wenrich
  * portions Copyright (c) 1994,1995,1996  Tim Bunce
@@ -7,11 +7,11 @@
  * License or the Artistic License, as specified in the Perl README file.
  *
  * Autocommit note:
- *   Solid 2.2 AUTOCOMMIT is broken (rollback in disconnect() 
- *   _MAY_ undo inserts done from within a solid procedure), so we 
- *   handle AutoCommit *additional* to the ODBC connection
- *   attribute (this is controlled by SOL22_AUTOCOMMIT_BUG definition
- *   within Makefile.PL).
+ *   Solid Server versions prior to 2.2.0017 have a broken AUTOCOMMIT
+ *   (rollback in disconnect() _MAY_ undo inserts done from within a 
+ *   solid procedure), so we handle AutoCommit *additional* to the 
+ *   ODBC connection attribute (this is controlled by SOL22_AUTOCOMMIT_BUG
+ *   definition within Makefile.PL).
  */
 
 #include "Solid.h"
@@ -146,6 +146,12 @@ dbd_db_login(dbh, dbname, uid, pwd)
     	{
 	DBIc_on(imp_dbh, DBIcf_AutoCommit);
 	}
+
+    /* set DBI spec (0.87) defaults 
+     */
+    DBIc_LongReadLen(imp_dbh) = 80;
+    DBIc_set(imp_dbh, DBIcf_LongTruncOk, 1);
+    
     imp_drh->connects++;
     DBIc_IMPSET_on(imp_dbh);	/* imp_dbh set up now			*/
     DBIc_ACTIVE_on(imp_dbh);	/* call disconnect before freeing	*/
@@ -241,11 +247,13 @@ dbd_db_rollback(dbh)
   replacement for ora_error.
   empties entire ODBC error queue.
 ------------------------------------------------------------*/
-void
-solid_error(h, badrc, what)
-    SV *h;
-    RETCODE badrc;
-    char *what;
+const char *
+solid_error5(
+    SV *h, 
+    RETCODE badrc, 
+    char *what, 
+    T_IsAnError func, 
+    const void *par)
 {
     D_imp_xxh(h);
 
@@ -263,6 +271,7 @@ solid_error(h, badrc, what)
     SWORD ErrorMsgMax = sizeof(ErrorMsg)-1;
     SWORD ErrorMsgLen;
     UCHAR sqlstate[10];
+    STRLEN len;
 
     SV *errstr = DBIc_ERRSTR(imp_xxh);
 
@@ -352,23 +361,23 @@ solid_error(h, badrc, what)
 	sv_catpv(errstr, ErrorMsg);
 	sv_catpv(errstr, ")");
 	}
-    if (badrc == SQL_NO_DATA_FOUND)
-    	{
-	/* For SQLFetch(): 
-	 *      Must clear ODBC error queue, but may not set 
-	 * 	$h->err to suppress weird messages when PrintError 
-	 *	is active.
-	 */
-        sv_setiv(DBIc_ERR(imp_xxh), (IV)0);
-	}
     if (badrc != SQL_SUCCESS)
 	{
-	DBIh_EVENT2(h, ERROR_event, DBIc_ERR(imp_xxh), errstr);
-	if (dbis->debug >= 2)
-	    fprintf(DBILOGFP, 
+	if (func == NULL 
+	    || (*func)(h, badrc, SvPV(DBIc_STATE(imp_xxh), len), par) != 0)
+	    {
+	    DBIh_EVENT2(h, ERROR_event, DBIc_ERR(imp_xxh), errstr);
+	    if (dbis->debug >= 2)
+	        fprintf(DBILOGFP, 
 		    "%s error %d recorded: %s\n",
 		    what, badrc, SvPV(errstr,na));
+	    }
+        else
+	    {
+    	    sv_setiv(DBIc_ERR(imp_xxh), (IV)0);
+	    }
 	}
+    return SvPV(DBIc_STATE(imp_xxh), len);
     }
 
 /*-------------------------------------------------------------------------
@@ -532,8 +541,10 @@ dbd_st_prepare(sth, statement, attribs)
 	return 0;
 	}
 
+#if 0 /* use DBIc macros */
     imp_sth->long_buflen   = 80; /* typical  default	*/
     imp_sth->long_trunc_ok = 0;	/* can use blob_read()		*/
+#endif 
     
     if (dbis->debug >= 2)
 	fprintf(DBILOGFP, "    dbd_st_prepare'd sql f%d\n\t%s\n",
@@ -546,6 +557,11 @@ dbd_st_prepare(sth, statement, attribs)
     imp_sth->n_result_cols = -1;
     imp_sth->RowCount = -1;
     imp_sth->eod = -1;
+
+    /* @@@ DBI Bug ??? */
+    DBIc_set(imp_sth, DBIcf_LongTruncOk,
+    	     DBIc_is(imp_dbh, DBIcf_LongTruncOk));
+    DBIc_LongReadLen(imp_sth) = DBIc_LongReadLen(imp_dbh);
 
     sprintf(cname, "dbd_cursor_%X", imp_sth->hstmt);
     rc = SQLSetCursorName(imp_sth->hstmt, cname, strlen(cname));
@@ -560,14 +576,21 @@ dbd_st_prepare(sth, statement, attribs)
 	if ((svp=hv_fetch((HV*)SvRV(attribs), "blob_size",9, 0)) != NULL)
 	    {
 	    int len = SvIV(*svp);
-	    imp_sth->long_buflen = len;
+	    DBIc_LongReadLen(imp_sth) = len;
 	    if (DBIc_WARN(imp_sth))
-	    	warn("depreciated feature: blob_size will be replaced by solid_blob_size\n");
+	    	warn("depreciated feature: blob_size will be replaced by LongReadLen\n");
 	    }
 	if ((svp=hv_fetch((HV*)SvRV(attribs), "solid_blob_size",15, 0)) != NULL)
 	    {
 	    int len = SvIV(*svp);
-	    imp_sth->long_buflen = len;
+	    DBIc_LongReadLen(imp_sth) = len;
+	    if (DBIc_WARN(imp_sth))
+	    	warn("depreciated feature: solid_blob_size will be replaced by LongReadLen\n");
+	    }
+	if ((svp=hv_fetch((HV*)SvRV(attribs), "LongReadLen",11, 0)) != NULL)
+	    {
+	    int len = SvIV(*svp);
+	    DBIc_LongReadLen(imp_sth) = len;
 	    }
 	
 #if YET_NOT_IMPLEMENTED
@@ -745,10 +768,10 @@ dbd_describe(h, imp_sth)
 	    {
 	    case SQL_LONGVARBINARY:
 		fbh->ftype = SQL_C_BINARY;
-		fbh->ColDisplaySize = imp_sth->long_buflen;
+		fbh->ColDisplaySize = DBIc_LongReadLen(imp_sth);
 		break;
 	    case SQL_LONGVARCHAR:
-		fbh->ColDisplaySize = imp_sth->long_buflen+1;
+		fbh->ColDisplaySize = DBIc_LongReadLen(imp_sth) + 1;
 		break;
 	    case SQL_TIMESTAMP:
 		fbh->ftype = SQL_C_TIMESTAMP;
@@ -892,6 +915,37 @@ dbd_st_execute(sth)	/* <0 is error, >=0 is ok (row count) */
     return 1;
     }
 
+/*
+ * Decide whether solid_error should set error for DBI
+ * SQL_NO_DATA_FOUND is never an error.
+ * SUCCESS_WITH_INFO errors depend on some other conditions.
+ *	
+ */
+static int 
+S_IsFetchError(
+	SV *sth, 
+	RETCODE rc, 
+        char *sqlstate,
+	const void *par)
+    {
+    D_imp_sth(sth);
+
+    if (rc == SQL_SUCCESS_WITH_INFO)
+        {
+	if (strEQ(sqlstate, "01004")) /* data truncated */
+	    { 
+	    /* error when LongTruncOk is false */
+
+	    return DBIc_is(imp_sth, DBIcf_LongTruncOk) == 0;
+	    }
+	}
+    else if (rc == SQL_NO_DATA_FOUND)
+        {
+	return 0;
+	}
+
+    return 1;
+    }
 /*----------------------------------------
  * running $sth->fetchrow()
  *----------------------------------------
@@ -908,6 +962,9 @@ dbd_st_fetch(sth)
     int num_fields;
     char cvbuf[512];
     char *p;
+    int LongTruncOk = DBIc_is(imp_sth, DBIcf_LongTruncOk);
+    int warn_flag = DBIc_is(imp_sth, DBIcf_WARN);
+    const char *sqlstate = NULL;
 
     /* Check that execute() was executed sucessfully. This also implies	*/
     /* that dbd_describe() executed sucessfuly so the memory buffers	*/
@@ -919,7 +976,6 @@ dbd_st_fetch(sth)
 	}
     
     rc = SQLFetch(imp_sth->hstmt);
-    solid_error(sth, rc, "st_fetch/SQLFetch");
     if (dbis->debug >= 2)
 	fprintf(DBILOGFP, "SQLFetch() returns %d\n",
 		rc);
@@ -929,12 +985,17 @@ dbd_st_fetch(sth)
 	    imp_sth->eod = rc;
 	    break;
 	case SQL_SUCCESS_WITH_INFO:
+            sqlstate = solid_error5(sth, rc, "st_fetch/SQLFetch", 
+				    S_IsFetchError, NULL);
 	    imp_sth->eod = SQL_SUCCESS;
 	    break;
 	case SQL_NO_DATA_FOUND:
 	    imp_sth->eod = rc;
+            sqlstate = solid_error5(sth, rc, "st_fetch/SQLFetch",
+				    S_IsFetchError, NULL);
 	    return Nullav;
 	default:
+            solid_error(sth, rc, "st_fetch/SQLFetch");
 	    return Nullav;
 	}
 
@@ -962,6 +1023,10 @@ dbd_st_fetch(sth)
 	    	{ 
 		/* truncated LONG ??? */
 	        sv_setpvn(sv, (char*)fbh->data, fbh->ColDisplaySize);
+		if (!LongTruncOk && warn_flag)
+		    {
+		    warn("column %d: value truncated", i+1);
+		    }
 	    	}
 	    else switch(fbh->ftype)
 	    	{
@@ -1075,7 +1140,23 @@ dbd_st_destroy(sth)
 
     if (imp_sth->params_hv)
 	{
-	hv_undef(imp_sth->params_hv);	
+	HV *hv = imp_sth->params_hv;
+	SV *sv;
+	char *key;
+	I32 retlen;
+
+	/* free SV allocated inside the placeholder structs
+	 */
+	hv_iterinit(hv);
+	while( (sv = hv_iternextsv(hv, &key, &retlen)) != NULL ) 
+	    {
+	    if (sv != &sv_undef) 
+	         {
+		 phs_t *phs_tpl = (phs_t*)(void*)SvPVX(sv);
+		 sv_free(phs_tpl->sv);
+		 }
+	    }
+        hv_undef(imp_sth->params_hv);
 	imp_sth->params_hv = NULL;
 	}
 
@@ -1285,8 +1366,31 @@ dbd_st_rows(sth)
 /*------------------------------------------------------------
  * blob_read:
  * read part of a BLOB from a table.
- * GRRRRRRR - SOLID doesn't support this.
  */
+static int 
+S_IsBlobReadError(
+	SV *sth, 
+	RETCODE rc, 
+        char *sqlstate,
+	const void *par)
+    {
+    D_imp_sth(sth);
+
+    if (rc == SQL_SUCCESS_WITH_INFO)
+        {
+	if (strEQ(sqlstate, "01004")) /* data truncated */
+	    {
+	    /* Data truncated is NORMAL during blob_read
+	     */
+	    return 0;
+	    }
+        }
+    else if (rc == SQL_NO_DATA_FOUND)
+    	return 0;
+	
+    return 1;
+    }
+	
 dbd_st_blob_read(sth, field, offset, len, destrv, destoffset)
     SV *sth;
     int field;
@@ -1309,23 +1413,26 @@ dbd_st_blob_read(sth, field, offset, len, destrv, destoffset)
 		    ((UCHAR *)SvPVX(bufsv)) + destoffset,
 		    (SDWORD) len,
 		    &retl);
-    solid_error(sth, rc, "dbd_st_blob_read/SQLGetData");
+    solid_error5(sth, rc, "dbd_st_blob_read/SQLGetData",
+    		S_IsBlobReadError, NULL);
 
     if (dbis->debug >= 2)
 	fprintf(DBILOGFP, "SQLGetData(...,off=%d, len=%d)->rc=%d,len=%d SvCUR=%d\n",
 		destoffset, len,
 		rc, retl, SvCUR(bufsv));
 
-    if (rc != SQL_SUCCESS) 
+
+    if (rc != SQL_SUCCESS)
 	{
-	if (rc == SQL_SUCCESS_WITH_INFO)
-	    {
-	    retl = len;
-	    }
-	else
-	    {
+        if (SvIV(DBIc_ERR(imp_sth)))	
+	     {
+	     /* IsBlobReadError thinks it's an error */
+    	     return 0;
+	     }
+        if (rc == SQL_NO_DATA_FOUND)
 	    return 0;
-	    }
+
+	retl = len;
         }
 
     SvCUR_set(bufsv, destoffset+retl);
@@ -1533,6 +1640,7 @@ static T_st_params S_st_fetch_params[] =
     s_A("solid_blob_size"),	/* 12 */
     s_A("solid_type"),		/* 13 */
     s_A("solid_length"),	/* 14 */
+    s_A("LongReadLen"),		/* 15 */
     s_A(""),			/* END */
 };
 
@@ -1692,7 +1800,8 @@ dbd_st_FETCH(sth, keysv)
 		     "Please use 'solid_blob_size' instead.");
 	    /* fall through */
 	case 12:		/* solid_blob_size */
-	    retsv = newSViv(imp_sth->long_buflen);
+	case 15: 		/* LongReadLen */
+	    retsv = newSViv(DBIc_LongReadLen(imp_sth));
 	    break;
 	default:
 	    return Nullsv;
@@ -1731,12 +1840,12 @@ dbd_st_STORE(sth, keysv, valuesv)
 	case 1:/* solid_blob_size */
 #if DESCRIBE_IN_PREPARE
 	    warn("$sth->{blob_size} isn't longer supported.\n"
-	         "You may either use the 'solid_blob_size' "
+	         "You may either use the 'LongReadLen' "
 		 "attribute to prepare()\nor the blob_read() "
 		 "function.\n");
 	    return FALSE;
 #endif
-	    imp_sth->long_buflen = SvIV(valuesv);
+	    DBIc_LongReadLen(imp_sth) = SvIV(valuesv);
 	    return TRUE;
 	}
     return FALSE;
