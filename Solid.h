@@ -1,6 +1,6 @@
 /* ======================================================================
 * $Id: Solid.h, v 2.0 2001-01-??
-* $Id: Solid.h,v 1.1 2001/10/13 20:57:16 joe Exp $
+* $Id: Solid.h,v 1.1 2001/10/13 21:08:47 joe Exp $
 * Copyright (c) 1997  Thomas K. Wenrich
 * portions Copyright (c) 1994,1995,1996  Tim Bunce
 *

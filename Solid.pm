@@ -1,4 +1,4 @@
-# $Id: Solid.pm,v 1.1 2001/10/13 20:57:16 joe Exp $
+# $Id: Solid.pm,v 1.1 2001/10/13 21:08:47 joe Exp $
 # Copyright (c) 1997  Thomas K. Wenrich
 # portions Copyright (c) 1994,1995,1996  Tim Bunce
 #
@@ -23,7 +23,7 @@ require 5.003;
    ### qw(:sql_types);
    ### require_version DBD::Solid::Const 0.03;
 
-   $VERSION = '0.20';
+   $VERSION = '0.20a';
    $S_SQL_ST_DATA_TRUNC = '01004';
    $S_SQL_ST_ATTR_VIOL = '07006';
 

@@ -1,4 +1,4 @@
-# $Id: Const.pm,v 1.1 2001/10/13 20:57:16 joe Exp $
+# $Id: Const.pm,v 1.1 2001/10/13 21:08:47 joe Exp $
 # Copyright (c) 1997  Thomas K. Wenrich
 # portions Copyright (c) 1994,1995,1996  Tim Bunce
 #
@@ -14,7 +14,7 @@ require Exporter;
 require DynaLoader;
 require AutoLoader;
 
-$VERSION = '0.20';
+$VERSION = '0.20a';
 
 @ISA = qw(Exporter DynaLoader);
 # Items to export into callers namespace by default. Note: do not export
